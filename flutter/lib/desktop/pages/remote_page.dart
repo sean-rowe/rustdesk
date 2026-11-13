@@ -15,6 +15,7 @@ import '../../common.dart';
 import '../../common/widgets/dialog.dart';
 import '../../common/widgets/toolbar.dart';
 import '../../models/model.dart';
+import '../../models/fit_remote_model.dart';
 import '../../models/input_model.dart';
 import '../../models/platform_model.dart';
 import '../../models/shortcut_model.dart';
@@ -970,6 +971,7 @@ class _RemotePageState extends State<RemotePage>
         child: _ViewStyleUpdater(
           canvasModel: _ffi.canvasModel,
           inputModel: _ffi.inputModel,
+          fitRemoteModel: _ffi.fitRemoteModel,
           child: Builder(builder: (context) {
             final peerDisplay = CurrentDisplayState.find(widget.id);
             return Obx(
@@ -1021,18 +1023,20 @@ class _RemotePageState extends State<RemotePage>
   bool get wantKeepAlive => true;
 }
 
-/// Tracks view size and DPR to update CanvasModel.updateViewStyle()
-/// and InputModel.updateImageWidgetSize() only when either changes.
+/// Tracks view size and DPR to update CanvasModel.updateViewStyle(),
+/// InputModel.updateImageWidgetSize() and FitRemoteModel only when either changes.
 /// This avoids scheduling post-frame callbacks on every LayoutBuilder rebuild.
 class _ViewStyleUpdater extends StatefulWidget {
   final CanvasModel canvasModel;
   final InputModel inputModel;
+  final FitRemoteModel fitRemoteModel;
   final Widget child;
 
   const _ViewStyleUpdater({
     Key? key,
     required this.canvasModel,
     required this.inputModel,
+    required this.fitRemoteModel,
     required this.child,
   }) : super(key: key);
 
@@ -1071,6 +1075,8 @@ class _ViewStyleUpdaterState extends State<_ViewStyleUpdater> {
               if (mounted && currentSize != null) {
                 widget.canvasModel.updateViewStyle();
                 widget.inputModel.updateImageWidgetSize(currentSize);
+                widget.fitRemoteModel
+                    .onViewSizeChanged(currentSize, devicePixelRatio);
               }
             });
           }

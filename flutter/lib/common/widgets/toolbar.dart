@@ -1072,6 +1072,20 @@ Future<List<TToggleMenu>> toolbarDisplayToggle(
         ffi.qualityMonitorModel.checkShowQualityMonitor(sessionId);
       },
       child: Text(translate('Show quality monitor'))));
+  // Resize the remote display to this window. Only Linux hosts can take any size: they resize
+  // their live X screen (src/platform/linux_randr.rs), which needs keyboard permission.
+  if (isDesktop &&
+      isDefaultConn &&
+      pi.platform == kPeerPlatformLinux &&
+      perms['keyboard'] != false) {
+    v.add(TToggleMenu(
+        value: ffi.fitRemoteModel.isEnabled,
+        onChanged: (value) async {
+          if (value == null) return;
+          await ffi.fitRemoteModel.setEnabled(value);
+        },
+        child: Text(translate('Resize remote to fit window'))));
+  }
   // mute
   if (isDefaultConn && perms['audio'] != false) {
     final option = 'disable-audio';

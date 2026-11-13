@@ -41,6 +41,7 @@ import 'package:vector_math/vector_math.dart' show Vector2;
 import '../common.dart';
 import '../utils/image.dart' as img;
 import '../common/widgets/dialog.dart';
+import 'fit_remote_model.dart';
 import 'input_model.dart';
 import 'platform_model.dart';
 import 'package:flutter_hbb/utils/scale.dart';
@@ -801,6 +802,7 @@ class FfiModel with ChangeNotifier {
       await parent.target?.canvasModel
           .updateViewStyle(refreshMousePos: updateCursorPos);
       _updateSessionWidthHeight(sessionId);
+      parent.target?.fitRemoteModel.onRemoteDisplayChanged();
 
       // Keep pointer lock center in sync when using relative mouse mode.
       // Note: updatePointerLockCenter is async-safe (handles errors internally),
@@ -4056,6 +4058,7 @@ class FFI {
   late final CmFileModel cmFileModel; // cm
   late final TextureModel textureModel; //session
   late final ShortcutModel shortcutModel; // session
+  late final FitRemoteModel fitRemoteModel; // session
   late final Peers recentPeersModel; // global
   late final Peers favoritePeersModel; // global
   late final Peers lanPeersModel; // global
@@ -4086,6 +4089,7 @@ class FFI {
     cmFileModel = CmFileModel(WeakReference(this));
     textureModel = TextureModel(WeakReference(this));
     shortcutModel = ShortcutModel(WeakReference(this));
+    fitRemoteModel = FitRemoteModel(WeakReference(this));
     recentPeersModel = Peers(
         name: PeersModelName.recent,
         loadEvent: LoadEvent.recent,
@@ -4380,6 +4384,7 @@ class FFI {
     if (isWeb) {
       platformFFI.clearVideoFrameCallback();
     }
+    fitRemoteModel.dispose();
     chatModel.close();
     // Close all terminal models
     for (final model in _terminalModels.values) {
