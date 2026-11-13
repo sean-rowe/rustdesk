@@ -23,8 +23,11 @@ use x11rb::{
     CURRENT_TIME, NONE,
 };
 
+/// Fraction bits in RandR's 16.16 fixed-point numbers.
+const FIXED_SHIFT: u32 = 16;
+
 /// One unit in RandR's 16.16 fixed-point numbers.
-const FIXED_ONE: f64 = 65536.0;
+const FIXED_ONE: f64 = (1u32 << FIXED_SHIFT) as f64;
 
 /// Filter the monitor uses to scale the screen while a size is fitted.
 const SCALE_FILTER: &[u8] = b"bilinear";
@@ -102,18 +105,22 @@ fn to_fixed(value: f64) -> render::Fixed {
     (value * FIXED_ONE).round() as render::Fixed
 }
 
+/// The scale `target / native` in fixed point, rounded down. The server rounds the scaled size
+/// up, so a scale rounded to nearest can make a 4096-wide target 4097 wide (5120 * 0.80000305);
+/// rounded down, `native` times the scale lands just under `target` and rounds up to it.
+fn scale_factor(native: u16, target: u16) -> render::Fixed {
+    ((u64::from(target) << FIXED_SHIFT) / u64::from(native)) as render::Fixed
+}
+
 /// The CRTC transform that shows a `target`-sized area of the screen on a monitor whose mode is
 /// `native`, scaling each axis on its own so the area fills the monitor.
 fn scale_transform(native: (u16, u16), target: (u16, u16)) -> render::Transform {
-    let scale_x = f64::from(target.0) / f64::from(native.0);
-    let scale_y = f64::from(target.1) / f64::from(native.1);
-
     render::Transform {
-        matrix11: to_fixed(scale_x),
+        matrix11: scale_factor(native.0, target.0),
         matrix12: 0,
         matrix13: 0,
         matrix21: 0,
-        matrix22: to_fixed(scale_y),
+        matrix22: scale_factor(native.1, target.1),
         matrix23: 0,
         matrix31: 0,
         matrix32: 0,
@@ -129,12 +136,6 @@ fn scaled_millimeters(pixels: u16, ref_pixels: u16, ref_mm: u32) -> u32 {
     }
 
     ((f64::from(pixels) * f64::from(ref_mm)) / f64::from(ref_pixels)).round() as u32
-}
-
-/// The smallest size that contains both `a` and `b`; the screen must hold every CRTC at every
-/// step of a change.
-fn covering_size(a: (u16, u16), b: (u16, u16)) -> (u16, u16) {
-    (a.0.max(b.0), a.1.max(b.1))
 }
 
 /// Converts a requested dimension, refusing sizes X cannot describe.
@@ -353,6 +354,25 @@ fn monitor_crtc<'a>(monitor_outputs: &[randr::Output], layout: &'a ScreenLayout)
         .ok_or_else(|| anyhow!("The monitor has no active CRTC"))
 }
 
+/// Switches off every CRTC that is showing something. The screen size is checked against each
+/// live CRTC as it stands, so it can only change once they are off; xrandr does the same.
+fn disable_active_crtcs(conn: &RustConnection, layout: &ScreenLayout) -> ResultType<()> {
+    for state in layout.crtcs.iter().filter(|c| c.mode != NONE) {
+        let off = CrtcState {
+            x: 0,
+            y: 0,
+            mode: NONE,
+            rotation: randr::Rotation::ROTATE0,
+            outputs: vec![],
+            ..state.clone()
+        };
+
+        set_crtc(conn, layout.config_timestamp, &off)?;
+    }
+
+    Ok(())
+}
+
 /// Makes the screen `target` pixels, shown on the session's monitor at its original mode, with
 /// every other monitor switched off. Runs under a server grab so clients see one change.
 fn apply_fit(
@@ -389,20 +409,14 @@ fn fit_under_grab(
     native: (u16, u16),
     target: (u16, u16),
 ) -> ResultType<()> {
-    for other in current.crtcs.iter().filter(|c| c.crtc != fitted.crtc && c.mode != NONE) {
-        let off = CrtcState { x: 0, y: 0, mode: NONE, rotation: randr::Rotation::ROTATE0, outputs: vec![], ..other.clone() };
-
-        set_crtc(conn, current.config_timestamp, &off)?;
-    }
-
-    set_screen_size(conn, root, covering_size((current.width, current.height), target), current)?;
+    disable_active_crtcs(conn, current)?;
+    set_screen_size(conn, root, target, current)?;
     conn.randr_set_crtc_transform(fitted.crtc, scale_transform(native, target), SCALE_FILTER, &[])?
         .check()?;
 
     let placed = CrtcState { x: 0, y: 0, ..fitted.clone() };
 
-    set_crtc(conn, current.config_timestamp, &placed)?;
-    set_screen_size(conn, root, target, current)
+    set_crtc(conn, current.config_timestamp, &placed)
 }
 
 /// Puts back the screen size, every CRTC and every transform recorded in `saved`.
@@ -424,17 +438,16 @@ fn restore_under_grab(
     current: &ScreenLayout,
     saved: &ScreenLayout,
 ) -> ResultType<()> {
-    let original = (saved.width, saved.height);
+    disable_active_crtcs(conn, current)?;
+    set_screen_size(conn, root, (saved.width, saved.height), saved)?;
 
-    set_screen_size(conn, root, covering_size((current.width, current.height), original), saved)?;
-
-    for state in &saved.crtcs {
+    for state in saved.crtcs.iter().filter(|c| c.mode != NONE) {
         conn.randr_set_crtc_transform(state.crtc, state.transform, &state.filter_name, &state.filter_params)?
             .check()?;
         set_crtc(conn, current.config_timestamp, state)?;
     }
 
-    set_screen_size(conn, root, original, saved)
+    Ok(())
 }
 
 /// Whether the window manager owns `window`'s size right now (maximized or fullscreen).
@@ -574,8 +587,25 @@ pub fn change_resolution(name: &str, width: usize, height: usize) -> ResultType<
     }
 
     let active = session.as_ref().ok_or_else(|| anyhow!("No fit session"))?;
+    let result = apply_fit(&conn, root, screen_num, active, target);
 
-    apply_fit(&conn, root, screen_num, active, target)
+    if result.is_err() {
+        if let Some(failed) = session.take() {
+            roll_back(&conn, root, screen_num, failed);
+        }
+    }
+
+    result
+}
+
+/// Puts back what a session saved after one of its changes failed half way, so a failure never
+/// leaves the display in a state nobody asked for.
+fn roll_back(conn: &RustConnection, root: xproto::Window, screen_num: usize, failed: FitSession) {
+    if let Err(e) = restore_layout(conn, root, screen_num, &failed.layout) {
+        log::error!("Failed to roll back display '{}': {}", failed.monitor, e);
+    }
+
+    schedule_window_restore(failed.windows);
 }
 
 #[cfg(test)]
@@ -595,7 +625,7 @@ mod tests {
         let t = scale_transform(native, target);
 
         assert_eq!(t.matrix11, to_fixed(1920.0 / 5120.0));
-        assert_eq!(t.matrix22, to_fixed(1200.0 / 1440.0));
+        assert_eq!(t.matrix22, scale_factor(1440, 1200));
         assert_eq!(t.matrix33, to_fixed(1.0));
         assert_eq!((t.matrix12, t.matrix13, t.matrix21, t.matrix23, t.matrix31, t.matrix32), (0, 0, 0, 0, 0, 0));
     }
@@ -607,6 +637,29 @@ mod tests {
         assert_eq!((t.matrix11, t.matrix22, t.matrix33), (to_fixed(1.0), to_fixed(1.0), to_fixed(1.0)));
     }
 
+    /// The size the server gives a CRTC of `native` pixels under `scale`: the product, rounded up.
+    fn scaled_size(native: u16, scale: render::Fixed) -> u64 {
+        let product = u64::from(native) * scale as u64;
+        let one = 1u64 << FIXED_SHIFT;
+
+        (product + one - 1) / one
+    }
+
+    #[test]
+    fn every_target_size_comes_out_exact() {
+        for native in [1920u16, 2560, 3440, 3840, 5120] {
+            for target in 320..=native {
+                assert_eq!(scaled_size(native, scale_factor(native, target)), u64::from(target), "{native} -> {target}");
+            }
+        }
+    }
+
+    #[test]
+    fn rounding_to_nearest_would_overshoot() {
+        assert_eq!(scaled_size(5120, to_fixed(4096.0 / 5120.0)), 4097);
+        assert_eq!(scaled_size(5120, scale_factor(5120, 4096)), 4096);
+    }
+
     #[test]
     fn millimeters_keep_the_reference_density() {
         assert_eq!(scaled_millimeters(1920, 5120, 1355), 508);
@@ -615,16 +668,54 @@ mod tests {
     }
 
     #[test]
-    fn covering_size_holds_both_sizes() {
-        assert_eq!(covering_size((5120, 1440), (1920, 1600)), (5120, 1600));
-        assert_eq!(covering_size((1920, 1200), (5120, 1440)), (5120, 1440));
-    }
-
-    #[test]
     fn dimensions_out_of_range_are_refused() {
         assert!(to_dimension(0).is_err());
         assert!(to_dimension(usize::from(u16::MAX) + 1).is_err());
         assert_eq!(to_dimension(1920).unwrap(), 1920);
+    }
+
+    /// Monitor a live check fits, e.g. "DP-0"; set to run [live_fit_then_restore].
+    const LIVE_MONITOR_ENV: &str = "RUSTDESK_LIVE_RANDR_MONITOR";
+
+    /// Size the live check fits the monitor to. Narrower than a 5120x1440 desktop so windows on
+    /// its right are pulled in and must come back, but as tall, so window groups that clamp
+    /// heights (Tack, TACK-276) are not disturbed by the check.
+    const LIVE_FIT_SIZE: (usize, usize) = (4096, 1440);
+
+    /// Time the server, window manager and window restore get between steps of the live check.
+    const LIVE_SETTLE: Duration = Duration::from_secs(3);
+
+    /// Fits a real X display and restores it. Changes the screen of `DISPLAY`, so it only runs on
+    /// request: RUSTDESK_LIVE_RANDR_MONITOR=DP-0 cargo test live_fit_then_restore -- --ignored
+    #[test]
+    #[ignore]
+    fn live_fit_then_restore() {
+        let monitor = std::env::var(LIVE_MONITOR_ENV).expect("set RUSTDESK_LIVE_RANDR_MONITOR");
+        let original = current_resolution(&monitor).unwrap();
+
+        let fit = change_resolution(&monitor, LIVE_FIT_SIZE.0, LIVE_FIT_SIZE.1);
+
+        thread::sleep(LIVE_SETTLE);
+
+        let fitted = current_resolution(&monitor);
+        let listed = resolutions(&monitor);
+
+        // Restore before any assertion, so a failed check never leaves the display fitted.
+        let restore = change_resolution(&monitor, original.width as usize, original.height as usize);
+
+        thread::sleep(LIVE_SETTLE);
+
+        let restored = current_resolution(&monitor).unwrap();
+
+        fit.unwrap();
+        restore.unwrap();
+
+        let fitted = fitted.unwrap();
+
+        assert_eq!((fitted.width as usize, fitted.height as usize), LIVE_FIT_SIZE);
+        assert!(!listed.is_empty());
+        assert_eq!((restored.width, restored.height), (original.width, original.height));
+        assert!(FIT_SESSION.lock().unwrap().is_none());
     }
 
     #[test]
