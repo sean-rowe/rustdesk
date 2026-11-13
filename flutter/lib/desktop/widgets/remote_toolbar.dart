@@ -1541,7 +1541,7 @@ class ScreenAdjustor {
         // Linux Adjust Window unmaximizes; macOS and Windows exit fullscreen
         // before resizing. Predict the restored normal-window edges when
         // deciding whether to show the menu item.
-        final resizePadding = isLinux && !kUseCompatibleUiMode
+        final resizePadding = isLinux && !kUseSystemWindowFrame
             ? kDragToResizeAreaPaddingSize
             : 0.0;
         final windowEdge = kWindowBorderWidth + resizePadding;

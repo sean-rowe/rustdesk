@@ -443,7 +443,9 @@ class _DesktopTabState extends State<DesktopTab>
     notMainWindowClose(WindowController windowController) async {
       if (controller.length != 0) {
         debugPrint("close not empty multiwindow from taskbar");
-        if (isWindows) {
+        // When the system draws the frame, its close button is the only one,
+        // so it must confirm closing the tabs like ours does.
+        if (isWindows || kUseSystemWindowFrame) {
           await windowController.show();
           await windowController.focus();
           final res = await onWindowCloseButton?.call() ?? true;
@@ -642,7 +644,7 @@ class _DesktopTabState extends State<DesktopTab>
                           width: 78,
                         )),
                     Offstage(
-                      offstage: kUseCompatibleUiMode || isMacOS,
+                      offstage: kUseSystemWindowFrame || isMacOS,
                       child: Row(children: [
                         Offstage(
                           offstage: !showLogo,
@@ -691,7 +693,7 @@ class _DesktopTabState extends State<DesktopTab>
                             ))),
                   ],
                 ))),
-        // hide simulated action buttons when we in compatible ui mode, because of reusing system title bar.
+        // hide simulated action buttons when the system draws the frame, because of reusing system title bar.
         WindowActionPanel(
           isMainWindow: isMainWindow,
           state: state,
@@ -776,7 +778,7 @@ class WindowActionPanelState extends State<WindowActionPanel> {
           }
         }),
         if (widget.tail != null) widget.tail!,
-        if (!kUseCompatibleUiMode)
+        if (!kUseSystemWindowFrame)
           Row(
             children: [
               if (widget.showMinimize && !isMacOS)

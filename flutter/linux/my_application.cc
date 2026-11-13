@@ -14,6 +14,10 @@
 
 #include "flutter/generated_plugin_registrant.h"
 
+// Holds the X11 window manager's name for the Dart side, which reads it with
+// bind.mainGetEnv (kWindowManagerNameEnv in flutter/lib/common.dart).
+static const gchar kWindowManagerNameEnv[] = "RUSTDESK_X11_WM_NAME";
+
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
@@ -134,6 +138,13 @@ static void my_application_activate(GApplication* application) {
   screen = gtk_window_get_screen(window);
   if (screen != NULL && GDK_IS_X11_SCREEN(screen)) {
     const gchar* wm_name = gdk_x11_screen_get_window_manager_name(screen);
+
+    // Set before the Flutter engine starts, so every window of this process
+    // sees it when deciding whether the window manager draws the controls.
+    if (wm_name != NULL) {
+      g_setenv(kWindowManagerNameEnv, wm_name, TRUE);
+    }
+
     if (g_strcmp0(wm_name, "GNOME Shell") != 0) {
       use_header_bar = FALSE;
     }

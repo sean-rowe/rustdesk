@@ -759,7 +759,7 @@ class _TerminalTabPageState extends State<TerminalTabPage> {
                   border: Border.all(color: MyTheme.color(context).border!)),
               child: child,
             ));
-    return isMacOS || kUseCompatibleUiMode
+    return isMacOS || kUseSystemWindowFrame
         ? tabWidget
         : SubWindowDragToResizeArea(
             child: tabWidget,

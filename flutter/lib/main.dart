@@ -234,8 +234,8 @@ void runMultiWindow(
     widget,
     MyTheme.currentThemeMode(),
   );
-  // we do not hide titlebar on win7 because of the frame overflow.
-  if (kUseCompatibleUiMode) {
+  // keep the system title bar when the system draws the frame (win7 frame overflow, framing linux WMs).
+  if (kUseSystemWindowFrame) {
     WindowController.fromWindowId(kWindowId!).showTitleBar(true);
   }
   switch (appType) {
@@ -404,8 +404,8 @@ WindowOptions getHiddenTitleBarWindowOptions(
     bool center = false,
     bool? alwaysOnTop}) {
   var defaultTitleBarStyle = TitleBarStyle.hidden;
-  // we do not hide titlebar on win7 because of the frame overflow.
-  if (kUseCompatibleUiMode) {
+  // keep the system title bar when the system draws the frame (win7 frame overflow, framing linux WMs).
+  if (kUseSystemWindowFrame) {
     defaultTitleBarStyle = TitleBarStyle.normal;
   }
   return WindowOptions(

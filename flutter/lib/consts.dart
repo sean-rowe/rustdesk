@@ -340,7 +340,7 @@ double kNewWindowOffset = isWindows
             : 50.0;
 
 const kDragToResizeAreaPaddingSize = 5.0;
-EdgeInsets get kDragToResizeAreaPadding => !kUseCompatibleUiMode && isLinux
+EdgeInsets get kDragToResizeAreaPadding => !kUseSystemWindowFrame && isLinux
     ? stateGlobal.fullscreen.isTrue || stateGlobal.isMaximized.value
         ? EdgeInsets.zero
         : EdgeInsets.all(kDragToResizeAreaPaddingSize)

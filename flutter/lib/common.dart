@@ -2956,6 +2956,43 @@ bool get kUseCompatibleUiMode =>
     isWindows &&
     const [WindowsTarget.w7].contains(windowsBuildNumber.windowsVersion);
 
+/// Environment variable the Linux runner (flutter/linux/my_application.cc)
+/// sets to the X11 window manager's name before the Flutter engine starts.
+const String kWindowManagerNameEnv = "RUSTDESK_X11_WM_NAME";
+
+/// X11 window managers that frame every window asking for decorations and
+/// draw minimize, maximize and close in that frame. "pine-wm" is PineOS's.
+const Set<String> kFramingWindowManagers = {"pine-wm"};
+
+final String _x11WindowManagerName =
+    isLinux ? bind.mainGetEnv(key: kWindowManagerNameEnv) : "";
+
+/// Whether the system draws the window frame and its controls, so we must
+/// not paint our own minimize, maximize and close buttons or resize border.
+///
+/// [Conditions]
+/// - [isCompatibleUiMode] (Windows 7).
+/// - Linux under a window manager in [kFramingWindowManagers], named by
+///   [windowManagerName] (its X11 _NET_WM_NAME).
+bool usesSystemWindowFrame({
+  required bool isCompatibleUiMode,
+  required bool isLinux,
+  required String windowManagerName,
+}) {
+  if (isCompatibleUiMode) {
+    return true;
+  }
+
+  return isLinux && kFramingWindowManagers.contains(windowManagerName);
+}
+
+/// [usesSystemWindowFrame] for the running process.
+bool get kUseSystemWindowFrame => usesSystemWindowFrame(
+      isCompatibleUiMode: kUseCompatibleUiMode,
+      isLinux: isLinux,
+      windowManagerName: _x11WindowManagerName,
+    );
+
 bool get isWin10 => windowsBuildNumber.windowsVersion == WindowsTarget.w10;
 
 class ServerConfig {

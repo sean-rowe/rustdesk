@@ -224,7 +224,7 @@ class _ViewCameraTabPageState extends State<ViewCameraTabPage> {
                   ),
                   child: child,
                 )));
-    return isMacOS || kUseCompatibleUiMode
+    return isMacOS || kUseSystemWindowFrame
         ? tabWidget
         : Obx(() => SubWindowDragToResizeArea(
               key: contentKey,
