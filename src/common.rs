@@ -2289,6 +2289,8 @@ pub fn check_process(arg: &str, mut same_uid: bool) -> bool {
     false
 }
 
+const OSS_HBBS_KX_TIMEOUT: u64 = 1500;
+
 async fn secure_tcp_impl(conn: &mut Stream, key: &str, log_on_success: bool) -> ResultType<()> {
     // Skip additional encryption when using WebSocket connections (wss://)
     // as WebSocket Secure (wss://) already provides transport layer encryption.
@@ -2297,18 +2299,39 @@ async fn secure_tcp_impl(conn: &mut Stream, key: &str, log_on_success: bool) -> 
     if use_ws() {
         return Ok(());
     }
-    key_exchange(conn, key, log_on_success).await.map(|_| ())
+    // Open-source hbbs (rustdesk-server) does not send a Pro KeyExchange
+    // greeting on TCP 21116, even when a client is logged into a third-party
+    // API server (e.g. lejianwen/rustdesk-api) with a non-empty token.
+    // Probe with a short timeout and tolerate silence as an unencrypted OSS
+    // hbbs, while still enforcing signature verification if the server replies.
+    match key_exchange_with_timeout(conn, key, log_on_success, OSS_HBBS_KX_TIMEOUT).await {
+        Ok(_) => Ok(()),
+        Err(err) if err.to_string().contains("deadline has elapsed") => {
+            log::warn!("Rendezvous server did not initiate key exchange (OSS hbbs), continuing");
+            Ok(())
+        }
+        Err(err) => Err(err),
+    }
 }
 
 /// The server's key exchange on `conn`. `Ok(true)` once the stream is encrypted. `Ok(false)`
 /// when the server sent something else first, nothing parseable, or closed: `secure_tcp`
 /// tolerates that for servers from before the exchange, `secure_tcp_required` does not.
 async fn key_exchange(conn: &mut Stream, key: &str, log_on_success: bool) -> ResultType<bool> {
+    key_exchange_with_timeout(conn, key, log_on_success, READ_TIMEOUT).await
+}
+
+async fn key_exchange_with_timeout(
+    conn: &mut Stream,
+    key: &str,
+    log_on_success: bool,
+    read_timeout: u64,
+) -> ResultType<bool> {
     let rs_pk = get_rs_pk(key);
     let Some(rs_pk) = rs_pk else {
         bail!("Handshake failed: invalid public key from rendezvous server");
     };
-    match timeout(READ_TIMEOUT, conn.next()).await? {
+    match timeout(read_timeout, conn.next()).await? {
         Some(Ok(bytes)) => {
             if let Ok(msg_in) = RendezvousMessage::parse_from_bytes(&bytes) {
                 match msg_in.union {
