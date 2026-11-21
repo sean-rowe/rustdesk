@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_hbb/common.dart';
 
@@ -53,5 +54,25 @@ void main() {
       ),
       isTrue,
     );
+  });
+
+  testWidgets('virtual window frame is omitted when the system draws the frame',
+      (tester) async {
+    const inner = SizedBox(key: Key('inner'));
+    late Widget result;
+    await tester.pumpWidget(
+      Builder(
+        builder: (context) {
+          result = buildVirtualWindowFrame(
+            context,
+            inner,
+            useSystemWindowFrame: true,
+          );
+          return result;
+        },
+      ),
+    );
+    expect(identical(result, inner), isTrue);
+    expect(find.byType(ClipRRect), findsNothing);
   });
 }

@@ -3982,7 +3982,14 @@ Widget buildPresetPasswordWarning() {
 }
 
 // https://github.com/leanflutter/window_manager/blob/87dd7a50b4cb47a375b9fc697f05e56eea0a2ab3/lib/src/widgets/virtual_window_frame.dart#L44
-Widget buildVirtualWindowFrame(BuildContext context, Widget child) {
+Widget buildVirtualWindowFrame(
+  BuildContext context,
+  Widget child, {
+  bool? useSystemWindowFrame,
+}) {
+  if (useSystemWindowFrame ?? kUseSystemWindowFrame) {
+    return child;
+  }
   boxShadow() => isMainDesktopWindow
       ? <BoxShadow>[
           if (stateGlobal.fullscreen.isFalse || stateGlobal.isMaximized.isFalse)
