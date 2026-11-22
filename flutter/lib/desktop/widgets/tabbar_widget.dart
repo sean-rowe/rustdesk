@@ -7,9 +7,11 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart' hide TabBarTheme;
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/remote_page.dart';
 import 'package:flutter_hbb/desktop/pages/view_camera_page.dart';
+import 'package:flutter_hbb/desktop/widgets/traffic_lights.dart';
 import 'package:flutter_hbb/main.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
@@ -779,60 +781,45 @@ class WindowActionPanelState extends State<WindowActionPanel> {
           }
         }),
         if (widget.tail != null) widget.tail!,
-        if (!kUseCompatibleUiMode)
-          Row(
-            children: [
-              if (widget.showMinimize && !isMacOS)
-                ActionIcon(
-                  message: 'Minimize',
-                  icon: IconFont.min,
-                  onTap: () {
-                    if (widget.isMainWindow) {
-                      windowManager.minimize();
-                    } else {
-                      WindowController.fromWindowId(kWindowId!).minimize();
-                    }
-                  },
-                  isClose: false,
-                ),
-              if (widget.showMaximize && !isMacOS)
-                Obx(() => ActionIcon(
-                      message: stateGlobal.isMaximized.isTrue
-                          ? 'Restore'
-                          : 'Maximize',
-                      icon: stateGlobal.isMaximized.isTrue
-                          ? IconFont.restore
-                          : IconFont.max,
-                      onTap: bind.isIncomingOnly() && isInHomePage()
-                          ? null
-                          : _toggleMaximize,
-                      isClose: false,
-                    )),
-              if (widget.showClose && !isMacOS)
-                ActionIcon(
-                  message: 'Close',
-                  icon: IconFont.close,
-                  onTap: () async {
-                    final res = await widget.onClose?.call() ?? true;
-                    if (res) {
-                      // hide for all window
-                      // note: the main window can be restored by tray icon
-                      Future.delayed(Duration.zero, () async {
-                        if (widget.isMainWindow) {
-                          await windowManager.close();
-                        } else {
-                          await WindowController.fromWindowId(kWindowId!)
-                              .close();
-                        }
-                      });
-                    }
-                  },
-                  isClose: true,
-                )
-            ],
-          ),
+        if (!kUseCompatibleUiMode && !isMacOS)
+          Obx(() => TrafficLights(
+                onClose: widget.showClose ? _close : null,
+                onMinimize: widget.showMinimize ? _minimize : null,
+                onMaximize: widget.showMaximize
+                    ? (bind.isIncomingOnly() && isInHomePage()
+                        ? null
+                        : _toggleMaximize)
+                    : null,
+                showClose: widget.showClose,
+                showMinimize: widget.showMinimize,
+                showMaximize: widget.showMaximize,
+                isMaximized: stateGlobal.isMaximized.isTrue,
+              )),
       ],
     );
+  }
+
+  void _minimize() {
+    if (widget.isMainWindow) {
+      windowManager.minimize();
+    } else {
+      WindowController.fromWindowId(kWindowId!).minimize();
+    }
+  }
+
+  Future<void> _close() async {
+    final res = await widget.onClose?.call() ?? true;
+    if (res) {
+      // hide for all window
+      // note: the main window can be restored by tray icon
+      Future.delayed(Duration.zero, () async {
+        if (widget.isMainWindow) {
+          await windowManager.close();
+        } else {
+          await WindowController.fromWindowId(kWindowId!).close();
+        }
+      });
+    }
   }
 
   void _toggleMaximize() {
@@ -1481,16 +1468,16 @@ class TabbarTheme extends ThemeExtension<TabbarTheme> {
       selectedTabBackgroundColor: Colors.white54);
 
   static const dark = TabbarTheme(
-      selectedTabIconColor: MyTheme.accent,
-      unSelectedTabIconColor: Color.fromARGB(255, 30, 65, 98),
-      selectedTextColor: Colors.white,
-      unSelectedTextColor: Color.fromARGB(255, 192, 192, 192),
-      selectedIconColor: Color.fromARGB(255, 192, 192, 192),
-      unSelectedIconColor: Color.fromARGB(255, 255, 255, 255),
-      dividerColor: Color.fromARGB(255, 64, 64, 64),
-      hoverColor: Colors.black26,
-      closeHoverColor: Colors.black,
-      selectedTabBackgroundColor: Colors.black26);
+      selectedTabIconColor: NimbusColors.accent,
+      unSelectedTabIconColor: NimbusColors.textTertiary,
+      selectedTextColor: NimbusColors.textPrimary,
+      unSelectedTextColor: NimbusColors.textSecondary,
+      selectedIconColor: NimbusColors.textSecondary,
+      unSelectedIconColor: NimbusColors.textOnGlass,
+      dividerColor: NimbusColors.divider,
+      hoverColor: NimbusColors.hoverRow,
+      closeHoverColor: NimbusColors.hoverControl,
+      selectedTabBackgroundColor: NimbusColors.surfaceRaise);
 
   @override
   ThemeExtension<TabbarTheme> copyWith({

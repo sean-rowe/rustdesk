@@ -9,6 +9,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/formatter/id_formatter.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/desktop/widgets/refresh_wrapper.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/main.dart';
@@ -181,17 +182,17 @@ class ColorThemeExtension extends ThemeExtension<ColorThemeExtension> {
   );
 
   static final dark = ColorThemeExtension(
-    border: Color(0xFF555555),
-    border2: Color(0xFFE5E5E5),
-    border3: Colors.white24,
-    highlight: Color(0xFF3F3F3F),
-    drag_indicator: Colors.grey,
-    shadow: Colors.grey,
-    errorBannerBg: Color(0xFF470F2D),
-    me: Colors.greenAccent,
-    toastBg: Colors.white.withOpacity(0.6),
-    toastText: Colors.black,
-    divider: Colors.white38,
+    border: NimbusColors.borderWindow,
+    border2: NimbusColors.textSecondary,
+    border3: NimbusColors.dividerStrong,
+    highlight: NimbusColors.raiseOpaque,
+    drag_indicator: NimbusColors.textTertiary,
+    shadow: Colors.black,
+    errorBannerBg: NimbusColors.dangerDeep.withOpacity(0.24),
+    me: NimbusColors.success,
+    toastBg: NimbusColors.menuOpaque,
+    toastText: NimbusColors.textOnGlass,
+    divider: NimbusColors.divider,
   );
 
   @override
@@ -249,23 +250,23 @@ class MyTheme {
   MyTheme._();
 
   static const Color grayBg = Color(0xFFEFEFF2);
-  static const Color accent = Color(0xFF0071FF);
-  static const Color accent50 = Color(0x770071FF);
-  static const Color accent80 = Color(0xAA0071FF);
-  static const Color canvasColor = Color(0xFF212121);
+  static const Color accent = NimbusColors.accent;
+  static const Color accent50 = Color(0x777C6CF0);
+  static const Color accent80 = Color(0xAA7C6CF0);
+  static const Color canvasColor = NimbusColors.desktopBase;
   static const Color border = Color(0xFFCCCCCC);
-  static const Color idColor = Color(0xFF00B6F0);
+  static const Color idColor = NimbusColors.accent;
   static const Color darkGray = Color.fromARGB(255, 148, 148, 148);
-  static const Color cmIdColor = Color(0xFF21790B);
+  static const Color cmIdColor = NimbusColors.success;
   static const Color dark = Colors.black87;
-  static const Color button = Color(0xFF2C8CFF);
+  static const Color button = NimbusColors.accent;
   static const Color hoverBorder = Color(0xFF999999);
 
   // ListTile
   static const ListTileThemeData listTileTheme = ListTileThemeData(
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.all(
-        Radius.circular(5),
+        Radius.circular(NimbusRadii.sm),
       ),
     ),
   );
@@ -285,7 +286,7 @@ class MyTheme {
     splashRadius: 0,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.all(
-        Radius.circular(5),
+        Radius.circular(NimbusRadii.xs),
       ),
     ),
   );
@@ -300,7 +301,7 @@ class MyTheme {
     style: TextButton.styleFrom(
       padding: EdgeInsets.symmetric(horizontal: mobileTextButtonPaddingLR),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: NimbusRadii.all(NimbusRadii.md),
       ),
     ),
   );
@@ -360,11 +361,11 @@ class MyTheme {
   static ScrollbarThemeData scrollbarThemeDark = scrollbarTheme.copyWith(
     thumbColor: MaterialStateProperty.resolveWith<Color?>((states) {
       if (states.contains(MaterialState.dragged)) {
-        return Colors.grey[100];
+        return NimbusColors.textSecondary;
       } else if (states.contains(MaterialState.hovered)) {
-        return Colors.grey[300];
+        return NimbusColors.textTertiary;
       } else {
-        return Colors.grey[500];
+        return NimbusColors.hoverControl;
       }
     }),
   );
@@ -382,7 +383,7 @@ class MyTheme {
     dialogTheme: DialogTheme(
       elevation: 15,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18.0),
+        borderRadius: NimbusRadii.all(NimbusRadii.xl),
         side: BorderSide(
           width: 1,
           color: grayBg,
@@ -396,7 +397,7 @@ class MyTheme {
             filled: true,
             isDense: true,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: NimbusRadii.all(NimbusRadii.md),
             ),
           )
         : null,
@@ -422,7 +423,7 @@ class MyTheme {
             style: TextButton.styleFrom(
               splashFactory: NoSplash.splashFactory,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18.0),
+                borderRadius: NimbusRadii.all(NimbusRadii.md),
               ),
             ),
           )
@@ -431,7 +432,7 @@ class MyTheme {
       style: ElevatedButton.styleFrom(
         backgroundColor: MyTheme.accent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: NimbusRadii.all(NimbusRadii.md),
         ),
       ),
     ),
@@ -440,7 +441,7 @@ class MyTheme {
         backgroundColor: grayBg,
         foregroundColor: Colors.black87,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: NimbusRadii.all(NimbusRadii.md),
         ),
       ),
     ),
@@ -452,7 +453,7 @@ class MyTheme {
         style:
             MenuStyle(backgroundColor: MaterialStatePropertyAll(Colors.white))),
     colorScheme: ColorScheme.light(
-        primary: Colors.blue, secondary: accent, background: grayBg),
+        primary: accent, secondary: accent, background: grayBg),
     popupMenuTheme: PopupMenuThemeData(
         color: Colors.white,
         shape: RoundedRectangleBorder(
@@ -460,7 +461,7 @@ class MyTheme {
               color: (isDesktop || isWebDesktop)
                   ? Color(0xFFECECEC)
                   : Colors.transparent),
-          borderRadius: BorderRadius.all(Radius.circular(8.0)),
+          borderRadius: NimbusRadii.all(NimbusRadii.lg),
         )),
   ).copyWith(
     extensions: <ThemeExtension<dynamic>>[
@@ -468,53 +469,91 @@ class MyTheme {
       TabbarTheme.light,
     ],
   );
+  // Nimbus: the dark theme is the full Nimbus glass look. Glass surfaces use
+  // their opaque composites because a Flutter window cannot blur the desktop.
   static ThemeData darkTheme = ThemeData(
     useMaterial3: false,
     brightness: Brightness.dark,
-    hoverColor: Color.fromARGB(255, 45, 46, 53),
-    scaffoldBackgroundColor: Color(0xFF18191E),
-    dialogBackgroundColor: Color(0xFF18191E),
+    hoverColor: NimbusColors.hoverRow,
+    scaffoldBackgroundColor: NimbusColors.windowOpaque,
+    dialogBackgroundColor: NimbusColors.menuOpaque,
+    canvasColor: NimbusColors.windowOpaque,
+    dividerColor: NimbusColors.divider,
     appBarTheme: AppBarTheme(
+      backgroundColor: NimbusColors.windowOpaque,
+      foregroundColor: NimbusColors.textPrimary,
       shadowColor: Colors.transparent,
     ),
     dialogTheme: DialogTheme(
       elevation: 15,
+      shadowColor: Colors.black,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18.0),
+        borderRadius: NimbusRadii.all(NimbusRadii.xl),
         side: BorderSide(
           width: 1,
-          color: Color(0xFF24252B),
+          color: NimbusColors.borderWindow,
         ),
       ),
     ),
     scrollbarTheme: scrollbarThemeDark,
     inputDecorationTheme: (isDesktop || isWebDesktop)
         ? InputDecorationTheme(
-            fillColor: Color(0xFF24252B),
+            fillColor: Color(0x38000000),
             filled: true,
             isDense: true,
+            hintStyle: TextStyle(color: NimbusColors.textTertiary),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: NimbusRadii.all(NimbusRadii.md),
+              borderSide: BorderSide(color: NimbusColors.divider),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: NimbusRadii.all(NimbusRadii.md),
+              borderSide: BorderSide(color: NimbusColors.divider),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: NimbusRadii.all(NimbusRadii.md),
+              borderSide: BorderSide(color: NimbusColors.accent, width: 1.5),
             ),
           )
         : null,
     textTheme: const TextTheme(
-      titleLarge: TextStyle(fontSize: 19),
-      titleSmall: TextStyle(fontSize: 14),
-      bodySmall: TextStyle(fontSize: 12, height: 1.25),
-      bodyMedium: TextStyle(fontSize: 14, height: 1.25),
+      titleLarge: TextStyle(
+          fontSize: NimbusType.title2,
+          fontWeight: NimbusType.bold,
+          color: NimbusColors.textPrimary),
+      titleSmall: TextStyle(
+          fontSize: NimbusType.headline,
+          fontWeight: NimbusType.semibold,
+          color: NimbusColors.textPrimary),
+      bodySmall: TextStyle(
+          fontSize: NimbusType.footnote,
+          height: 1.25,
+          color: NimbusColors.textSecondary),
+      bodyMedium: TextStyle(
+          fontSize: 14, height: 1.25, color: NimbusColors.textPrimary),
       labelLarge: TextStyle(
-        fontSize: 16.0,
-        fontWeight: FontWeight.bold,
+        fontSize: NimbusType.title3,
+        fontWeight: NimbusType.semibold,
         color: accent80,
       ),
     ),
-    cardColor: Color(0xFF24252B),
+    cardColor: NimbusColors.raiseOpaque,
+    hintColor: NimbusColors.textTertiary,
     visualDensity: VisualDensity.adaptivePlatformDensity,
     tabBarTheme: const TabBarTheme(
-      labelColor: Colors.white70,
+      labelColor: NimbusColors.textPrimary,
+      unselectedLabelColor: NimbusColors.textSecondary,
+      indicatorColor: NimbusColors.accent,
     ),
-    tooltipTheme: tooltipTheme(),
+    tooltipTheme: tooltipTheme().copyWith(
+      decoration: BoxDecoration(
+        color: NimbusColors.menuOpaque,
+        borderRadius: NimbusRadii.all(NimbusRadii.xs),
+        border: Border.all(color: NimbusColors.borderWindow),
+      ),
+      textStyle: TextStyle(
+          fontSize: NimbusType.footnote, color: NimbusColors.textOnGlass),
+    ),
     splashColor: (isDesktop || isWebDesktop) ? Colors.transparent : null,
     highlightColor: (isDesktop || isWebDesktop) ? Colors.transparent : null,
     splashFactory: (isDesktop || isWebDesktop) ? NoSplash.splashFactory : null,
@@ -522,53 +561,118 @@ class MyTheme {
         ? TextButtonThemeData(
             style: TextButton.styleFrom(
               splashFactory: NoSplash.splashFactory,
-              disabledForegroundColor: Colors.white70,
-              foregroundColor: Colors.white70,
+              disabledForegroundColor: NimbusColors.textTertiary,
+              foregroundColor: NimbusColors.textSecondary,
+              textStyle: TextStyle(fontWeight: NimbusType.semibold),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18.0),
+                borderRadius: NimbusRadii.all(NimbusRadii.md),
               ),
             ),
           )
         : mobileTextButtonTheme,
     elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: MyTheme.accent,
-        foregroundColor: Colors.white,
-        disabledForegroundColor: Colors.white70,
-        disabledBackgroundColor: Colors.white10,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
+      style: ButtonStyle(
+        backgroundColor: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.disabled)) {
+            return NimbusColors.accent.withOpacity(0.4);
+          }
+          if (states.contains(MaterialState.hovered) ||
+              states.contains(MaterialState.pressed)) {
+            return NimbusColors.accentStrong;
+          }
+          return NimbusColors.accent;
+        }),
+        foregroundColor: MaterialStateProperty.resolveWith((states) =>
+            states.contains(MaterialState.disabled)
+                ? Colors.white.withOpacity(0.4)
+                : Colors.white),
+        textStyle: MaterialStatePropertyAll(
+            TextStyle(fontWeight: NimbusType.semibold)),
+        elevation: MaterialStatePropertyAll(0),
+        shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+          borderRadius: NimbusRadii.all(NimbusRadii.md),
+        )),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        backgroundColor: Color(0xFF24252B),
-        side: BorderSide(color: Colors.white12, width: 0.5),
-        disabledForegroundColor: Colors.white70,
-        foregroundColor: Colors.white70,
+        backgroundColor: Color(0x14FFFFFF),
+        side: BorderSide(color: NimbusColors.borderWindow),
+        disabledForegroundColor: NimbusColors.textTertiary,
+        foregroundColor: NimbusColors.textPrimary,
+        textStyle: TextStyle(fontWeight: NimbusType.semibold),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: NimbusRadii.all(NimbusRadii.md),
         ),
       ),
     ),
-    switchTheme: switchTheme(),
-    radioTheme: radioTheme(),
-    checkboxTheme: checkboxTheme,
-    listTileTheme: listTileTheme,
+    switchTheme: switchTheme().copyWith(
+      thumbColor: MaterialStatePropertyAll(Colors.white),
+      trackColor: MaterialStateProperty.resolveWith((states) =>
+          states.contains(MaterialState.selected)
+              ? NimbusColors.accent
+              : Color(0x2EFFFFFF)),
+      trackOutlineColor: MaterialStatePropertyAll(Colors.transparent),
+    ),
+    radioTheme: radioTheme().copyWith(
+      fillColor: MaterialStateProperty.resolveWith((states) =>
+          states.contains(MaterialState.selected)
+              ? NimbusColors.accent
+              : NimbusColors.textTertiary),
+    ),
+    checkboxTheme: checkboxTheme.copyWith(
+      fillColor: MaterialStateProperty.resolveWith((states) =>
+          states.contains(MaterialState.selected)
+              ? NimbusColors.accent
+              : Colors.transparent),
+      checkColor: MaterialStatePropertyAll(Colors.white),
+      side: BorderSide(color: NimbusColors.textTertiary, width: 1.5),
+    ),
+    listTileTheme: listTileTheme.copyWith(
+      selectedColor: Colors.white,
+      selectedTileColor: NimbusColors.accentFill,
+      iconColor: NimbusColors.textSecondary,
+      textColor: NimbusColors.textPrimary,
+    ),
+    sliderTheme: SliderThemeData(
+      activeTrackColor: NimbusColors.accent,
+      inactiveTrackColor: Color(0x2EFFFFFF),
+      thumbColor: Colors.white,
+      overlayColor: NimbusColors.accentSoft,
+    ),
+    progressIndicatorTheme:
+        ProgressIndicatorThemeData(color: NimbusColors.accent),
     menuBarTheme: MenuBarThemeData(
         style: MenuStyle(
-            backgroundColor: MaterialStatePropertyAll(Color(0xFF121212)))),
+            backgroundColor: MaterialStatePropertyAll(NimbusColors.menuOpaque))),
+    menuTheme: MenuThemeData(
+      style: MenuStyle(
+        backgroundColor: MaterialStatePropertyAll(NimbusColors.menuOpaque),
+        side: MaterialStatePropertyAll(
+            BorderSide(color: NimbusColors.borderWindow)),
+        shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+            borderRadius: NimbusRadii.all(NimbusRadii.lg))),
+      ),
+    ),
     colorScheme: ColorScheme.dark(
-      primary: Colors.blue,
-      secondary: accent,
-      background: Color(0xFF24252B),
+      primary: NimbusColors.accent,
+      onPrimary: Colors.white,
+      secondary: NimbusColors.accent,
+      onSecondary: Colors.white,
+      surface: NimbusColors.windowOpaque,
+      onSurface: NimbusColors.textPrimary,
+      background: NimbusColors.windowSolidOpaque,
+      onBackground: NimbusColors.textPrimary,
+      error: NimbusColors.danger,
     ),
     popupMenuTheme: PopupMenuThemeData(
+        color: NimbusColors.menuOpaque,
+        textStyle: TextStyle(
+            fontSize: NimbusType.body, color: NimbusColors.textOnGlass),
         shape: RoundedRectangleBorder(
-      side: BorderSide(color: Colors.white24),
-      borderRadius: BorderRadius.all(Radius.circular(8.0)),
-    )),
+          side: BorderSide(color: NimbusColors.borderWindow),
+          borderRadius: NimbusRadii.all(NimbusRadii.lg),
+        )),
   ).copyWith(
     extensions: <ThemeExtension<dynamic>>[
       ColorThemeExtension.dark,
