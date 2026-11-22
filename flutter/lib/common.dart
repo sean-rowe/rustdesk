@@ -486,7 +486,6 @@ class MyTheme {
     ),
     dialogTheme: DialogTheme(
       elevation: 15,
-      shadowColor: Colors.black,
       shape: RoundedRectangleBorder(
         borderRadius: NimbusRadii.all(NimbusRadii.xl),
         side: BorderSide(
@@ -563,7 +562,6 @@ class MyTheme {
               splashFactory: NoSplash.splashFactory,
               disabledForegroundColor: NimbusColors.textTertiary,
               foregroundColor: NimbusColors.textSecondary,
-              textStyle: TextStyle(fontWeight: NimbusType.semibold),
               shape: RoundedRectangleBorder(
                 borderRadius: NimbusRadii.all(NimbusRadii.md),
               ),
@@ -586,8 +584,6 @@ class MyTheme {
             states.contains(MaterialState.disabled)
                 ? Colors.white.withOpacity(0.4)
                 : Colors.white),
-        textStyle: MaterialStatePropertyAll(
-            TextStyle(fontWeight: NimbusType.semibold)),
         elevation: MaterialStatePropertyAll(0),
         shape: MaterialStatePropertyAll(RoundedRectangleBorder(
           borderRadius: NimbusRadii.all(NimbusRadii.md),
@@ -600,7 +596,6 @@ class MyTheme {
         side: BorderSide(color: NimbusColors.borderWindow),
         disabledForegroundColor: NimbusColors.textTertiary,
         foregroundColor: NimbusColors.textPrimary,
-        textStyle: TextStyle(fontWeight: NimbusType.semibold),
         shape: RoundedRectangleBorder(
           borderRadius: NimbusRadii.all(NimbusRadii.md),
         ),
