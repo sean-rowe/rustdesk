@@ -1,6 +1,7 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/widgets/dialog.dart';
 import 'package:flutter_hbb/consts.dart';
@@ -48,8 +49,8 @@ class _PeerCard extends StatefulWidget {
 class _PeerCardState extends State<_PeerCard>
     with AutomaticKeepAliveClientMixin {
   var _menuPos = RelativeRect.fill;
-  final double _cardRadius = 16;
-  final double _tileRadius = 5;
+  final double _cardRadius = NimbusRadii.lg;
+  final double _tileRadius = NimbusRadii.sm;
   final double _borderWidth = 2;
 
   @override
@@ -306,7 +307,10 @@ class _PeerCardState extends State<_PeerCard>
               children: [
                 Expanded(
                   child: Container(
-                    color: str2color('${peer.id}${peer.platform}', 0x7f),
+                    decoration: BoxDecoration(
+                      gradient: nimbusPeerGradient(
+                          str2color('${peer.id}${peer.platform}')),
+                    ),
                     child: Row(
                       children: [
                         Expanded(
@@ -327,8 +331,9 @@ class _PeerCardState extends State<_PeerCard>
                                       child: Text(
                                         name,
                                         style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 12),
+                                            color: NimbusColors.textOnGlass,
+                                            fontSize: NimbusType.footnote,
+                                            fontWeight: NimbusType.semibold),
                                         textAlign: TextAlign.center,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -362,7 +367,7 @@ class _PeerCardState extends State<_PeerCard>
                   ),
                 ),
                 Container(
-                  color: Theme.of(context).colorScheme.background,
+                  color: NimbusColors.raiseOpaque,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1606,4 +1611,15 @@ void connectInPeerTab(BuildContext context, Peer peer, PeerTabIndex tab,
       isViewCamera: isViewCamera,
       isTcpTunneling: isTcpTunneling,
       isRDP: isRDP);
+}
+
+/// A Nimbus app-icon style gradient for a peer: its own hue at 155deg,
+/// deepened toward the accent so every peer sits in the Nimbus palette.
+Gradient nimbusPeerGradient(Color hue) {
+  final base = Color.lerp(hue, NimbusColors.accentStrong, 0.35)!;
+  return LinearGradient(
+    begin: const Alignment(-0.42, -1),
+    end: const Alignment(0.42, 1),
+    colors: [base, Color.lerp(base, NimbusColors.desktopBase, 0.45)!],
+  );
 }

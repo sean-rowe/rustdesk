@@ -675,8 +675,9 @@ class MyTheme {
     ],
   );
 
+  // Nimbus is dark-first: the stored light/system preference is ignored.
   static ThemeMode getThemeModePreference() {
-    return themeModeFromString(bind.mainGetLocalOption(key: kCommConfKeyTheme));
+    return ThemeMode.dark;
   }
 
   static Future<void> changeDarkMode(ThemeMode mode) async {

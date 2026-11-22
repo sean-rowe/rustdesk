@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/common/widgets/connection_page_title.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/widgets/popup_menu.dart';
@@ -119,10 +120,10 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
                 borderRadius: BorderRadius.circular(4),
                 color: _svcStopped.value ||
                         stateGlobal.svcStatus.value == SvcStatus.connecting
-                    ? kColorWarn
+                    ? NimbusColors.warning
                     : (stateGlobal.svcStatus.value == SvcStatus.ready
-                        ? Color.fromARGB(255, 50, 190, 166)
-                        : Color.fromARGB(255, 224, 79, 95)),
+                        ? NimbusColors.success
+                        : NimbusColors.danger),
               ),
             ).marginSymmetric(horizontal: em),
             Container(
@@ -308,19 +309,24 @@ class _ConnectionPageState extends State<ConnectionPage>
       children: [
         Expanded(
             child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Flexible(child: _buildRemoteIDTextField(context)),
-              ],
-            ).marginOnly(top: 22),
-            SizedBox(height: 12),
-            Divider().paddingOnly(right: 12),
+            _buildRemoteIDTextField(context),
+            const SizedBox(height: NimbusSpace.s12),
             Expanded(child: PeerTabPage()),
           ],
-        ).paddingOnly(left: 12.0)),
-        if (!isOutgoingOnly) const Divider(height: 1),
-        if (!isOutgoingOnly) OnlineStatusWidget()
+        ).paddingOnly(
+                left: NimbusSpace.s12,
+                right: NimbusSpace.s6,
+                top: NimbusSpace.s10)),
+        if (!isOutgoingOnly)
+          Container(
+            decoration: const BoxDecoration(
+              color: Color(0x0AFFFFFF),
+              border: Border(top: BorderSide(color: NimbusColors.divider)),
+            ),
+            child: OnlineStatusWidget(),
+          ),
       ],
     );
   }
@@ -376,19 +382,15 @@ class _ConnectionPageState extends State<ConnectionPage>
   /// UI for the remote ID TextField.
   /// Search for a peer.
   Widget _buildRemoteIDTextField(BuildContext context) {
-    var w = Container(
-      width: 320 + 20 * 2,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
-      decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(13)),
-          border: Border.all(color: Theme.of(context).colorScheme.background)),
-      child: Ink(
-        child: Column(
+    var w = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        getConnectionPageTitle(context, false)
+            .marginOnly(bottom: NimbusSpace.s6),
+        Row(
           children: [
-            getConnectionPageTitle(context, false).marginOnly(bottom: 15),
-            Row(
-              children: [
-                Expanded(
+            Expanded(
+                child: _NimbusIdFieldShell(
                     child: RawAutocomplete<Peer>(
                   optionsBuilder: (TextEditingValue textEditingValue) {
                     if (textEditingValue.text == '') {
@@ -453,9 +455,10 @@ class _ConnectionPageState extends State<ConnectionPage>
                           keyboardType: TextInputType.visiblePassword,
                           focusNode: fieldFocusNode,
                           style: const TextStyle(
-                            fontFamily: 'WorkSans',
-                            fontSize: 22,
-                            height: 1.4,
+                            fontSize: NimbusType.title2,
+                            fontWeight: NimbusType.semibold,
+                            color: NimbusColors.textPrimary,
+                            fontFeatures: [FontFeature.tabularFigures()],
                           ),
                           maxLines: 1,
                           cursorColor:
@@ -463,11 +466,19 @@ class _ConnectionPageState extends State<ConnectionPage>
                           decoration: InputDecoration(
                               filled: false,
                               counterText: '',
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              isDense: true,
                               hintText: _idInputFocused.value
                                   ? null
                                   : translate('Enter Remote ID'),
+                              hintStyle: const TextStyle(
+                                  fontWeight: NimbusType.regular,
+                                  color: NimbusColors.textTertiary),
                               contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 15, vertical: 13)),
+                                  horizontal: NimbusSpace.s3,
+                                  vertical: NimbusSpace.s4)),
                           controller: fieldTextEditingController,
                           inputFormatters: [IDTextInputFormatter()],
                           onChanged: (v) {
@@ -545,14 +556,10 @@ class _ConnectionPageState extends State<ConnectionPage>
                               ))),
                     );
                   },
-                )),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 13.0),
-              child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                SizedBox(
-                  height: 28.0,
+                ))),
+            const SizedBox(width: NimbusSpace.s4),
+            SizedBox(
+                  height: _kConnectBarHeight,
                   child: ElevatedButton(
                     onPressed: () {
                       onConnect();
@@ -560,13 +567,14 @@ class _ConnectionPageState extends State<ConnectionPage>
                     child: Text(translate("Connect")),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: NimbusSpace.s4),
                 Container(
-                  height: 28.0,
-                  width: 28.0,
+                  height: _kConnectBarHeight,
+                  width: _kConnectBarHeight,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0x14FFFFFF),
+                    border: Border.all(color: NimbusColors.borderWindow),
+                    borderRadius: NimbusRadii.all(NimbusRadii.md),
                   ),
                   child: Center(
                     child: StatefulBuilder(
@@ -652,13 +660,39 @@ class _ConnectionPageState extends State<ConnectionPage>
                     ),
                   ),
                 ),
-              ]),
-            ),
           ],
         ),
-      ),
+      ],
     );
     return Container(
-        constraints: const BoxConstraints(maxWidth: 600), child: w);
+        constraints: const BoxConstraints(maxWidth: 640), child: w);
+  }
+}
+
+const double _kConnectBarHeight = 38;
+
+/// The Nimbus field around the remote ID input: a recessed rounded well with
+/// a leading display glyph, matching the Nimbus search field.
+class _NimbusIdFieldShell extends StatelessWidget {
+  final Widget child;
+
+  const _NimbusIdFieldShell({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: _kConnectBarHeight,
+      padding: const EdgeInsets.only(left: NimbusSpace.s5),
+      decoration: BoxDecoration(
+        color: const Color(0x38000000),
+        borderRadius: NimbusRadii.all(NimbusRadii.md),
+        border: Border.all(color: NimbusColors.divider),
+      ),
+      child: Row(children: [
+        const Icon(Icons.desktop_windows_outlined,
+            size: 16, color: NimbusColors.textTertiary),
+        Expanded(child: child),
+      ]),
+    );
   }
 }

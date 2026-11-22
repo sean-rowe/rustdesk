@@ -7,11 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
+import 'package:flutter_hbb/common/widgets/peer_tab_page.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
+import 'package:flutter_hbb/desktop/widgets/nimbus/nimbus_widgets.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
@@ -64,7 +67,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         buildLeftPane(context),
-        if (!isIncomingOnly) const VerticalDivider(width: 1),
         if (!isIncomingOnly) Expanded(child: buildRightPane(context)),
       ],
     ));
@@ -89,9 +91,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         alignment: Alignment.center,
         child: loadLogo(),
       ),
-      buildTip(context),
-      if (!isOutgoingOnly) buildIDBoard(context),
-      if (!isOutgoingOnly) buildPasswordBoard(context),
+      buildDesktopPanel(context),
+      if (!isIncomingOnly) const PeerTabSidebar(),
       FutureBuilder<Widget>(
         future: Future.value(
             Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
@@ -129,17 +130,24 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     return ChangeNotifierProvider.value(
       value: gFFI.serverModel,
       child: Container(
-        width: isIncomingOnly ? 280.0 : 200.0,
-        color: Theme.of(context).colorScheme.background,
+        width: isIncomingOnly ? 280.0 : 240.0,
+        decoration: const BoxDecoration(
+          color: NimbusColors.surfaceSidebar,
+          border: Border(right: BorderSide(color: NimbusColors.divider)),
+        ),
         child: Stack(
           children: [
             Column(
               children: [
                 SingleChildScrollView(
                   controller: _leftPaneScrollController,
-                  child: Column(
+                  child: Padding(
                     key: _childKey,
-                    children: children,
+                    padding: const EdgeInsets.all(NimbusSpace.s6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: children,
+                    ),
                   ),
                 ),
                 Expanded(child: Container())
@@ -179,102 +187,88 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   buildRightPane(BuildContext context) {
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: ConnectionPage(),
-    );
+    return ConnectionPage();
   }
 
-  buildIDBoard(BuildContext context) {
-    final model = gFFI.serverModel;
-    return Container(
-      margin: const EdgeInsets.only(left: 20, right: 11),
-      height: 57,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
+  Widget buildDesktopPanel(BuildContext context) {
+    final isOutgoingOnly = bind.isOutgoingOnly();
+    return NimbusPanel(
+      padding: const EdgeInsets.fromLTRB(NimbusSpace.s7, NimbusSpace.s7,
+          NimbusSpace.s4, NimbusSpace.s5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 2,
-            decoration: const BoxDecoration(color: MyTheme.accent),
-          ).marginOnly(top: 5),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 7),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    height: 25,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          translate("ID"),
-                          style: TextStyle(
-                              fontSize: 14,
-                              color: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.color
-                                  ?.withOpacity(0.5)),
-                        ).marginOnly(top: 5),
-                        buildPopupMenu(context)
-                      ],
-                    ),
-                  ),
-                  Flexible(
-                    child: GestureDetector(
-                      onDoubleTap: () {
-                        Clipboard.setData(
-                            ClipboardData(text: model.serverId.text));
-                        showToast(translate("Copied"));
-                      },
-                      child: TextFormField(
-                        controller: model.serverId,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(top: 10, bottom: 10),
-                        ),
-                        style: TextStyle(
-                          fontSize: 22,
-                        ),
-                      ).workaroundFreezeLinuxMint(),
-                    ),
-                  )
-                ],
-              ),
-            ),
-          ),
+          buildTip(context),
+          if (!isOutgoingOnly) ...[
+            const SizedBox(height: NimbusSpace.s7),
+            buildIDBoard(context),
+            const Divider(height: NimbusSpace.s6, endIndent: NimbusSpace.s4),
+            buildPasswordBoard(context),
+          ],
         ],
       ),
     );
   }
 
-  Widget buildPopupMenu(BuildContext context) {
-    final textColor = Theme.of(context).textTheme.titleLarge?.color;
-    RxBool hover = false.obs;
-    return InkWell(
-      onTap: DesktopTabPage.onAddSetting,
-      child: Tooltip(
-        message: translate('Settings'),
-        child: Obx(
-          () => CircleAvatar(
-            radius: 15,
-            backgroundColor: hover.value
-                ? Theme.of(context).scaffoldBackgroundColor
-                : Theme.of(context).colorScheme.background,
-            child: Icon(
-              Icons.more_vert_outlined,
-              size: 20,
-              color: hover.value ? textColor : textColor?.withOpacity(0.5),
+  static const TextStyle _boardLabelStyle = TextStyle(
+    fontSize: NimbusType.caption2,
+    fontWeight: NimbusType.semibold,
+    letterSpacing: 0.4,
+    color: NimbusColors.textTertiary,
+  );
+
+  static const TextStyle _boardValueStyle = TextStyle(
+    fontSize: NimbusType.title1,
+    fontWeight: NimbusType.bold,
+    letterSpacing: -0.3,
+    color: NimbusColors.textPrimary,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+
+  static const InputDecoration _boardValueDecoration = InputDecoration(
+    border: InputBorder.none,
+    enabledBorder: InputBorder.none,
+    focusedBorder: InputBorder.none,
+    filled: false,
+    isDense: true,
+    contentPadding: EdgeInsets.symmetric(vertical: NimbusSpace.s2),
+  );
+
+  buildIDBoard(BuildContext context) {
+    final model = gFFI.serverModel;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(translate("ID").toUpperCase(),
+                  style: _boardLabelStyle),
             ),
-          ),
+            buildPopupMenu(context),
+          ],
         ),
-      ),
-      onHover: (value) => hover.value = value,
+        GestureDetector(
+          onDoubleTap: () {
+            Clipboard.setData(ClipboardData(text: model.serverId.text));
+            showToast(translate("Copied"));
+          },
+          child: TextFormField(
+            controller: model.serverId,
+            readOnly: true,
+            decoration: _boardValueDecoration,
+            style: _boardValueStyle,
+          ).workaroundFreezeLinuxMint(),
+        ),
+      ],
+    );
+  }
+
+  Widget buildPopupMenu(BuildContext context) {
+    return _BoardIconButton(
+      icon: Icons.more_horiz,
+      tooltip: translate('Settings'),
+      onTap: DesktopTabPage.onAddSetting,
     );
   }
 
@@ -289,141 +283,87 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   buildPasswordBoard2(BuildContext context, ServerModel model) {
-    RxBool refreshHover = false.obs;
-    RxBool editHover = false.obs;
-    final textColor = Theme.of(context).textTheme.titleLarge?.color;
     final showOneTime = model.approveMode != 'click' &&
         model.verificationMethod != kUsePermanentPassword;
-    return Container(
-      margin: EdgeInsets.only(left: 20.0, right: 16, top: 13, bottom: 13),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Container(
-            width: 2,
-            height: 52,
-            decoration: BoxDecoration(color: MyTheme.accent),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 7),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AutoSizeText(
-                    translate("One-time Password"),
-                    style: TextStyle(
-                        fontSize: 14, color: textColor?.withOpacity(0.5)),
-                    maxLines: 1,
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onDoubleTap: () {
-                            if (showOneTime) {
-                              Clipboard.setData(
-                                  ClipboardData(text: model.serverPasswd.text));
-                              showToast(translate("Copied"));
-                            }
-                          },
-                          child: TextFormField(
-                            controller: model.serverPasswd,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              contentPadding:
-                                  EdgeInsets.only(top: 14, bottom: 10),
-                            ),
-                            style: TextStyle(fontSize: 15),
-                          ).workaroundFreezeLinuxMint(),
-                        ),
-                      ),
-                      if (showOneTime)
-                        AnimatedRotationWidget(
-                          onPressed: () => bind.mainUpdateTemporaryPassword(),
-                          child: Tooltip(
-                            message: translate('Refresh Password'),
-                            child: Obx(() => RotatedBox(
-                                quarterTurns: 2,
-                                child: Icon(
-                                  Icons.refresh,
-                                  color: refreshHover.value
-                                      ? textColor
-                                      : Color(0xFFDDDDDD),
-                                  size: 22,
-                                ))),
-                          ),
-                          onHover: (value) => refreshHover.value = value,
-                        ).marginOnly(right: 8, top: 4),
-                      if (!bind.isDisableSettings())
-                        InkWell(
-                          child: Tooltip(
-                            message: translate('Change Password'),
-                            child: Obx(
-                              () => Icon(
-                                Icons.edit,
-                                color: editHover.value
-                                    ? textColor
-                                    : Color(0xFFDDDDDD),
-                                size: 22,
-                              ).marginOnly(right: 8, top: 4),
-                            ),
-                          ),
-                          onTap: () => DesktopSettingPage.switch2page(
-                              SettingsTabKey.safety),
-                          onHover: (value) => editHover.value = value,
-                        ),
-                    ],
-                  ),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AutoSizeText(
+          translate("One-time Password").toUpperCase(),
+          style: _boardLabelStyle,
+          maxLines: 1,
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onDoubleTap: () {
+                  if (showOneTime) {
+                    Clipboard.setData(
+                        ClipboardData(text: model.serverPasswd.text));
+                    showToast(translate("Copied"));
+                  }
+                },
+                child: TextFormField(
+                  controller: model.serverPasswd,
+                  readOnly: true,
+                  decoration: _boardValueDecoration,
+                  style: _boardValueStyle.copyWith(
+                      fontSize: NimbusType.title3,
+                      fontWeight: NimbusType.semibold),
+                ).workaroundFreezeLinuxMint(),
               ),
             ),
-          ),
-        ],
-      ),
+            if (showOneTime)
+              AnimatedRotationWidget(
+                onPressed: () => bind.mainUpdateTemporaryPassword(),
+                child: Tooltip(
+                  message: translate('Refresh Password'),
+                  child: const RotatedBox(
+                    quarterTurns: 2,
+                    child: Icon(Icons.refresh,
+                        color: NimbusColors.textTertiary, size: 18),
+                  ),
+                ),
+              ).marginOnly(right: NimbusSpace.s2),
+            if (!bind.isDisableSettings())
+              _BoardIconButton(
+                icon: Icons.edit_outlined,
+                tooltip: translate('Change Password'),
+                onTap: () =>
+                    DesktopSettingPage.switch2page(SettingsTabKey.safety),
+              ),
+          ],
+        ),
+      ],
     );
   }
 
   buildTip(BuildContext context) {
     final isOutgoingOnly = bind.isOutgoingOnly();
-    return Padding(
-      padding:
-          const EdgeInsets.only(left: 20.0, right: 16, top: 16.0, bottom: 5),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              if (!isOutgoingOnly)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    translate("Your Desktop"),
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-            ],
-          ),
-          SizedBox(
-            height: 10.0,
-          ),
-          if (!isOutgoingOnly)
-            Text(
-              translate("desk_tip"),
-              overflow: TextOverflow.clip,
-              style: Theme.of(context).textTheme.bodySmall,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!isOutgoingOnly)
+          Text(
+            translate("Your Desktop"),
+            style: const TextStyle(
+              fontSize: NimbusType.title3,
+              fontWeight: NimbusType.bold,
+              color: NimbusColors.textPrimary,
             ),
-          if (isOutgoingOnly)
-            Text(
-              translate("outgoing_only_desk_tip"),
-              overflow: TextOverflow.clip,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-        ],
-      ),
+          ),
+        const SizedBox(height: NimbusSpace.s2),
+        Text(
+          translate(isOutgoingOnly ? "outgoing_only_desk_tip" : "desk_tip"),
+          overflow: TextOverflow.clip,
+          style: const TextStyle(
+            fontSize: NimbusType.footnote,
+            height: 1.35,
+            color: NimbusColors.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1137,4 +1077,50 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
       onCancel: close,
     );
   });
+}
+
+/// A small square icon button used on the "Your Desktop" panel.
+class _BoardIconButton extends StatefulWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _BoardIconButton(
+      {required this.icon, required this.tooltip, required this.onTap});
+
+  @override
+  State<_BoardIconButton> createState() => _BoardIconButtonState();
+}
+
+class _BoardIconButtonState extends State<_BoardIconButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: NimbusMotion.fast,
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: _hovered ? NimbusColors.hoverControl : Colors.transparent,
+              borderRadius: NimbusRadii.all(NimbusRadii.xs),
+            ),
+            child: Icon(widget.icon,
+                size: 16,
+                color: _hovered
+                    ? NimbusColors.textPrimary
+                    : NimbusColors.textTertiary),
+          ),
+        ),
+      ),
+    );
+  }
 }
