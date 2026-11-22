@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/common/widgets/audio_input.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
@@ -94,7 +95,7 @@ class _DesktopServerPageState extends State<DesktopServerPage>
       child: Consumer<ServerModel>(
         builder: (context, serverModel, child) {
           final body = Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.background,
+            backgroundColor: Colors.transparent,
             body: ConnectionManager(),
           );
           return isLinux
@@ -457,15 +458,13 @@ class _CmHeaderState extends State<_CmHeader>
     super.build(context);
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10.0),
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [
-            Color(0xff00bfe1),
-            Color(0xff0071ff),
-          ],
+        borderRadius: NimbusRadii.all(NimbusRadii.lg),
+        gradient: const LinearGradient(
+          begin: Alignment(-0.42, -1),
+          end: Alignment(0.42, 1),
+          colors: [NimbusColors.brandIndigo, NimbusColors.accentStrong],
         ),
+        boxShadow: NimbusShadows.icon,
       ),
       margin: EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.0),
       padding: EdgeInsets.only(
@@ -488,8 +487,8 @@ class _CmHeaderState extends State<_CmHeader>
                   client.name,
                   style: TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                    fontWeight: NimbusType.bold,
+                    fontSize: NimbusType.title2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   maxLines: 1,
@@ -630,12 +629,16 @@ class _PrivilegeBoardState extends State<_PrivilegeBoard> {
     return Tooltip(
       message: "$tooltipText: ${enabled ? "ON" : "OFF"}",
       waitDuration: Duration.zero,
-      child: Container(
+      child: AnimatedContainer(
+        duration: NimbusMotion.fast,
+        curve: NimbusMotion.standard,
         decoration: BoxDecoration(
           color: enabled
-              ? (canModify ? MyTheme.accent : MyTheme.accent.withOpacity(0.6))
-              : Colors.grey[700],
-          borderRadius: BorderRadius.circular(10.0),
+              ? (canModify
+                  ? NimbusColors.accent
+                  : NimbusColors.accent.withOpacity(0.6))
+              : NimbusColors.hoverControl,
+          borderRadius: NimbusRadii.all(NimbusRadii.pill),
         ),
         padding: EdgeInsets.all(8.0),
         child: InkWell(
@@ -672,23 +675,19 @@ class _PrivilegeBoardState extends State<_PrivilegeBoard> {
       margin: EdgeInsets.all(5.0),
       padding: EdgeInsets.all(5.0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10.0),
-        color: Theme.of(context).colorScheme.background,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 1,
-            offset: Offset(0, 1.5),
-          ),
-        ],
+        borderRadius: NimbusRadii.all(NimbusRadii.lg),
+        color: NimbusColors.surfacePanel,
+        border: Border.all(color: NimbusColors.divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             translate("Permissions"),
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                fontSize: NimbusType.headline,
+                fontWeight: NimbusType.semibold,
+                color: NimbusColors.textPrimary),
             textAlign: TextAlign.center,
           ).marginOnly(left: 4.0, bottom: 8.0),
           Expanded(
@@ -960,7 +959,7 @@ class _CmControlPanel extends StatelessWidget {
               Expanded(
                 child: buildButton(
                   context,
-                  color: Colors.red,
+                  color: NimbusColors.danger,
                   onClick: () => closeVoiceCall(),
                   icon: Icon(
                     Icons.call_end_rounded,
@@ -993,7 +992,7 @@ class _CmControlPanel extends StatelessWidget {
               Expanded(
                 child: buildButton(
                   context,
-                  color: Colors.red,
+                  color: NimbusColors.danger,
                   onClick: () => handleVoiceCall(false),
                   icon: Icon(
                     Icons.phone_disabled_rounded,
@@ -1010,7 +1009,7 @@ class _CmControlPanel extends StatelessWidget {
         Offstage(
           offstage: !client.fromSwitch,
           child: buildButton(context,
-              color: Colors.purple,
+              color: NimbusColors.accentStrong,
               onClick: () => handleSwitchBack(context),
               icon: Icon(Icons.reply, color: Colors.white),
               text: "Switch Sides",
@@ -1038,7 +1037,7 @@ class _CmControlPanel extends StatelessWidget {
           children: [
             Expanded(
               child: buildButton(context,
-                  color: Colors.redAccent,
+                  color: NimbusColors.danger,
                   onClick: handleDisconnect,
                   text: 'Disconnect',
                   icon: Icon(
@@ -1083,7 +1082,7 @@ class _CmControlPanel extends StatelessWidget {
       children: [
         Offstage(
           offstage: !showElevation || !showAccept,
-          child: buildButton(context, color: Colors.green[700], onClick: () {
+          child: buildButton(context, color: NimbusColors.accentStrong, onClick: () {
             handleAccept(context);
             handleElevate(context);
             windowManager.minimize();
@@ -1120,8 +1119,8 @@ class _CmControlPanel extends StatelessWidget {
             Expanded(
               child: buildButton(
                 context,
-                color: Colors.transparent,
-                border: Border.all(color: Colors.grey),
+                color: const Color(0x14FFFFFF),
+                border: Border.all(color: NimbusColors.borderWindow),
                 onClick: handleDisconnect,
                 text: 'Cancel',
                 textColor: null,
@@ -1147,21 +1146,21 @@ class _CmControlPanel extends StatelessWidget {
     if (icon != null) {
       textWidget = Text(
         translate(text),
-        style: TextStyle(color: textColor),
+        style: TextStyle(color: textColor, fontWeight: NimbusType.semibold),
         textAlign: TextAlign.center,
       );
     } else {
       textWidget = Expanded(
         child: Text(
           translate(text),
-          style: TextStyle(color: textColor),
+          style: TextStyle(color: textColor, fontWeight: NimbusType.semibold),
           textAlign: TextAlign.center,
         ),
       );
     }
-    final borderRadius = BorderRadius.circular(10.0);
+    final borderRadius = NimbusRadii.all(NimbusRadii.md);
     final btn = Container(
-      height: 28,
+      height: 30,
       decoration: BoxDecoration(
           color: color, borderRadius: borderRadius, border: border),
       child: InkWell(

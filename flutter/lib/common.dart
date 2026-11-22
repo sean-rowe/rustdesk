@@ -4063,11 +4063,9 @@ Widget buildVirtualWindowFrame(BuildContext context, Widget child) {
   return Obx(
     () => Container(
       decoration: BoxDecoration(
-        color: isMainDesktopWindow
-            ? Colors.transparent
-            : Theme.of(context).colorScheme.background,
+        color: Colors.transparent,
         border: Border.all(
-          color: Theme.of(context).dividerColor,
+          color: NimbusColors.borderWindow,
           width: stateGlobal.windowBorderWidth.value,
         ),
         borderRadius: BorderRadius.circular(

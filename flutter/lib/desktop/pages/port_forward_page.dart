@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
@@ -96,7 +97,7 @@ class _PortForwardPageState extends State<PortForwardPage>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.transparent,
       body: FutureBuilder(future: () async {
         if (!widget.isRDP) {
           refreshTunnelConfig();
@@ -135,7 +136,7 @@ class _PortForwardPageState extends State<PortForwardPage>
           offstage: pfs.isEmpty && !widget.isRDP,
           child: Container(
               height: 45,
-              color: const Color(0xFF007F00),
+              color: NimbusColors.success.withOpacity(0.24),
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -262,7 +263,7 @@ class _PortForwardPageState extends State<PortForwardPage>
       decoration: BoxDecoration(
           color: index % 2 == 0
               ? MyTheme.currentThemeMode() == ThemeMode.dark
-                  ? const Color(0xFF202020)
+                  ? NimbusColors.surfaceRaise
                   : const Color(0xFFF4F5F6)
               : Theme.of(context).colorScheme.background),
       child: Row(children: [

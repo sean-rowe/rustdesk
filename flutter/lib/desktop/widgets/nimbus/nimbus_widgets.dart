@@ -1,6 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common/theme/nimbus.dart';
 
+/// Builds a pressable's look from its pointer and keyboard state.
+typedef NimbusPressableBuilder = Widget Function(
+    BuildContext context, bool hovered, bool focused);
+
+/// A press target that works with pointer and keyboard alike. It joins focus
+/// traversal while enabled, activates on Enter or Space, and draws an accent
+/// focus ring around its child. A pressable without [onTap] is disabled and
+/// left out of traversal.
+class NimbusPressable extends StatefulWidget {
+  final VoidCallback? onTap;
+  final String? semanticLabel;
+  final BorderRadius focusRadius;
+  final NimbusPressableBuilder builder;
+
+  const NimbusPressable({
+    Key? key,
+    required this.onTap,
+    required this.builder,
+    this.semanticLabel,
+    this.focusRadius = const BorderRadius.all(Radius.circular(NimbusRadii.sm)),
+  }) : super(key: key);
+
+  @override
+  State<NimbusPressable> createState() => _NimbusPressableState();
+}
+
+class _NimbusPressableState extends State<NimbusPressable> {
+  bool _hovered = false;
+  bool _focused = false;
+
+  bool get _enabled => widget.onTap != null;
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusableActionDetector(
+      enabled: _enabled,
+      mouseCursor:
+          _enabled ? SystemMouseCursors.click : MouseCursor.defer,
+      onShowHoverHighlight: (v) => setState(() => _hovered = v),
+      onShowFocusHighlight: (v) => setState(() => _focused = v),
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) => widget.onTap?.call()),
+      },
+      child: Semantics(
+        button: true,
+        enabled: _enabled,
+        label: widget.semanticLabel,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: Container(
+            foregroundDecoration: _focused
+                ? BoxDecoration(
+                    borderRadius: widget.focusRadius,
+                    border: Border.all(color: NimbusColors.accent, width: 2),
+                  )
+                : null,
+            child: widget.builder(context, _hovered && _enabled, _focused),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Uppercase micro-label that heads a group of sidebar rows.
 class NimbusSectionLabel extends StatelessWidget {
   final String text;
@@ -27,7 +93,7 @@ class NimbusSectionLabel extends StatelessWidget {
 
 /// A sidebar list row: icon, label and optional trailing widget. A selected
 /// row is filled with the accent; a hovered row gets a faint white wash.
-class NimbusSidebarRow extends StatefulWidget {
+class NimbusSidebarRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool selected;
@@ -44,58 +110,45 @@ class NimbusSidebarRow extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<NimbusSidebarRow> createState() => _NimbusSidebarRowState();
-}
-
-class _NimbusSidebarRowState extends State<NimbusSidebarRow> {
-  bool _hovered = false;
-
-  @override
   Widget build(BuildContext context) {
-    final foreground =
-        widget.selected ? NimbusColors.textPrimary : NimbusColors.textSecondary;
-    final fill = widget.selected
-        ? NimbusColors.accentFill
-        : (_hovered ? NimbusColors.hoverRow : Colors.transparent);
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      cursor: widget.onTap == null
-          ? MouseCursor.defer
-          : SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: NimbusSpace.s1 / 2),
+      child: NimbusPressable(
+        onTap: onTap,
+        semanticLabel: label,
+        builder: (context, hovered, _) => AnimatedContainer(
           duration: NimbusMotion.fast,
           curve: NimbusMotion.standard,
-          margin: const EdgeInsets.symmetric(vertical: NimbusSpace.s1 / 2),
           padding: const EdgeInsets.symmetric(
               horizontal: NimbusSpace.s5, vertical: 7),
           decoration: BoxDecoration(
-            color: fill,
+            color: selected
+                ? NimbusColors.accentFill
+                : (hovered ? NimbusColors.hoverRow : Colors.transparent),
             borderRadius: NimbusRadii.all(NimbusRadii.sm),
           ),
           child: Row(children: [
-            Icon(widget.icon,
+            Icon(icon,
                 size: 16,
-                color: widget.selected
+                color: selected
                     ? NimbusColors.textPrimary
                     : NimbusColors.accent),
             const SizedBox(width: NimbusSpace.s5),
             Expanded(
               child: Text(
-                widget.label,
+                label,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: NimbusType.footnote,
-                  fontWeight: widget.selected
-                      ? NimbusType.semibold
-                      : NimbusType.regular,
-                  color: foreground,
+                  fontWeight:
+                      selected ? NimbusType.semibold : NimbusType.regular,
+                  color: selected
+                      ? NimbusColors.textPrimary
+                      : NimbusColors.textSecondary,
                 ),
               ),
             ),
-            if (widget.trailing != null) widget.trailing!,
+            if (trailing != null) trailing!,
           ]),
         ),
       ),
@@ -176,37 +229,81 @@ class _Segment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
+    return NimbusPressable(
+      onTap: onTap,
+      semanticLabel: label,
+      builder: (context, hovered, _) => AnimatedContainer(
+        duration: NimbusMotion.fast,
+        curve: NimbusMotion.standard,
+        padding: const EdgeInsets.symmetric(
+            horizontal: NimbusSpace.s8, vertical: NimbusSpace.s2),
+        decoration: BoxDecoration(
+          color: selected
+              ? NimbusColors.hoverControl
+              : (hovered ? NimbusColors.hoverRow : Colors.transparent),
+          borderRadius: NimbusRadii.all(NimbusRadii.sm),
+          boxShadow: selected
+              ? const [
+                  BoxShadow(
+                      offset: Offset(0, 1),
+                      blurRadius: 3,
+                      color: Color(0x4D000000))
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: NimbusType.body,
+            fontWeight: NimbusType.semibold,
+            color: selected
+                ? NimbusColors.textPrimary
+                : NimbusColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small square icon button for toolbars and panels.
+class NimbusIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+  final double size;
+
+  const NimbusIconButton({
+    Key? key,
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.size = 24,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: NimbusPressable(
         onTap: onTap,
-        child: AnimatedContainer(
+        semanticLabel: tooltip,
+        focusRadius: NimbusRadii.all(NimbusRadii.xs),
+        builder: (context, hovered, _) => AnimatedContainer(
           duration: NimbusMotion.fast,
-          curve: NimbusMotion.standard,
-          padding: const EdgeInsets.symmetric(
-              horizontal: NimbusSpace.s8, vertical: NimbusSpace.s2),
+          width: size,
+          height: size,
           decoration: BoxDecoration(
-            color: selected ? NimbusColors.hoverControl : Colors.transparent,
-            borderRadius: NimbusRadii.all(NimbusRadii.sm),
-            boxShadow: selected
-                ? const [
-                    BoxShadow(
-                        offset: Offset(0, 1),
-                        blurRadius: 3,
-                        color: Color(0x4D000000))
-                  ]
-                : null,
+            color: hovered ? NimbusColors.hoverControl : Colors.transparent,
+            borderRadius: NimbusRadii.all(NimbusRadii.xs),
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: NimbusType.body,
-              fontWeight: NimbusType.semibold,
-              color: selected
-                  ? NimbusColors.textPrimary
-                  : NimbusColors.textSecondary,
-            ),
-          ),
+          child: Icon(icon,
+              size: size * 2 / 3,
+              color: onTap == null
+                  ? NimbusColors.textTertiary.withOpacity(0.4)
+                  : (hovered
+                      ? NimbusColors.textPrimary
+                      : NimbusColors.textTertiary)),
         ),
       ),
     );

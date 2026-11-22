@@ -101,7 +101,7 @@ class _PortForwardTabPageState extends State<PortForwardTabPage> {
   @override
   Widget build(BuildContext context) {
     final child = Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Colors.transparent,
       body: DesktopTab(
         controller: tabController,
         onWindowCloseButton: () async {

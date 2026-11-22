@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/common/widgets/audio_input.dart';
 import 'package:flutter_hbb/common/widgets/setting_widgets.dart';
 import 'package:flutter_hbb/consts.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_hbb/desktop/pages/desktop_home_page.dart';
 import 'package:flutter_hbb/common/widgets/keyboard_shortcuts/page_body.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_keyboard_shortcuts_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
+import 'package:flutter_hbb/desktop/widgets/nimbus/nimbus_widgets.dart';
 import 'package:flutter_hbb/desktop/widgets/remote_toolbar.dart';
 import 'package:flutter_hbb/mobile/widgets/dialog.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
@@ -28,8 +30,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import '../../common/widgets/dialog.dart';
 import '../../common/widgets/login.dart';
 
-const double _kTabWidth = 200;
-const double _kTabHeight = 42;
+const double _kTabWidth = 220;
 const double _kCardFixedWidth = 540;
 const double _kCardLeftMargin = 15;
 const double _kContentHMargin = 15;
@@ -37,8 +38,8 @@ const double _kContentHSubMargin = _kContentHMargin + 33;
 const double _kCheckBoxLeftMargin = 10;
 const double _kRadioLeftMargin = 10;
 const double _kListViewBottomMargin = 15;
-const double _kTitleFontSize = 20;
-const double _kContentFontSize = 15;
+const double _kTitleFontSize = NimbusType.title3;
+const double _kContentFontSize = NimbusType.body;
 const Color _accentColor = MyTheme.accent;
 const String _kSettingPageControllerTag = 'settingPageController';
 const String _kSettingPageTabKeyTag = 'settingPageTabKey';
@@ -277,11 +278,15 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Colors.transparent,
       body: _buildBlock(
         children: <Widget>[
-          SizedBox(
+          Container(
             width: _kTabWidth,
+            decoration: const BoxDecoration(
+              color: NimbusColors.surfaceSidebar,
+              border: Border(right: BorderSide(color: NimbusColors.divider)),
+            ),
             child: Column(
               children: [
                 _header(context),
@@ -289,10 +294,8 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
               ],
             ),
           ),
-          const VerticalDivider(width: 1),
           Expanded(
             child: Container(
-              color: Theme.of(context).scaffoldBackgroundColor,
               child: PageView(
                 controller: controller,
                 physics: NeverScrollableScrollPhysics(),
@@ -310,9 +313,9 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
       translate('Settings'),
       textAlign: TextAlign.left,
       style: const TextStyle(
-        color: _accentColor,
-        fontSize: _kTitleFontSize,
-        fontWeight: FontWeight.w400,
+        color: NimbusColors.textPrimary,
+        fontSize: NimbusType.title2,
+        fontWeight: NimbusType.bold,
       ),
     );
     return Row(
@@ -336,9 +339,9 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
           ).marginOnly(left: 20),
         if (!isWeb)
           SizedBox(
-            height: 62,
-            child: settingsText,
-          ).marginOnly(left: 20, top: 10),
+            height: 56,
+            child: Align(alignment: Alignment.centerLeft, child: settingsText),
+          ).marginOnly(left: NimbusSpace.s8),
         const Spacer(),
       ],
     );
@@ -348,6 +351,7 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
     final scrollController = ScrollController();
     return ListView(
       controller: scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: NimbusSpace.s6),
       children: tabs.map((tab) => _listItem(tab: tab)).toList(),
     );
   }
@@ -355,40 +359,20 @@ class _DesktopSettingPageState extends State<DesktopSettingPage>
   Widget _listItem({required _TabInfo tab}) {
     return Obx(() {
       bool selected = tab.key == selectedTab.value;
-      return SizedBox(
-        width: _kTabWidth,
-        height: _kTabHeight,
-        child: InkWell(
-          onTap: () {
-            if (selectedTab.value != tab.key) {
-              int index = DesktopSettingPage.tabKeys.indexOf(tab.key);
-              if (index == -1) {
-                return;
-              }
-              controller.jumpToPage(index);
+      return NimbusSidebarRow(
+        icon: selected ? tab.selected : tab.unselected,
+        label: translate(tab.label),
+        selected: selected,
+        onTap: () {
+          if (selectedTab.value != tab.key) {
+            int index = DesktopSettingPage.tabKeys.indexOf(tab.key);
+            if (index == -1) {
+              return;
             }
-            selectedTab.value = tab.key;
-          },
-          child: Row(children: [
-            Container(
-              width: 4,
-              height: _kTabHeight * 0.7,
-              color: selected ? _accentColor : null,
-            ),
-            Icon(
-              selected ? tab.selected : tab.unselected,
-              color: selected ? _accentColor : null,
-              size: 20,
-            ).marginOnly(left: 13, right: 10),
-            Text(
-              translate(tab.label),
-              style: TextStyle(
-                  color: selected ? _accentColor : null,
-                  fontWeight: FontWeight.w400,
-                  fontSize: _kContentFontSize),
-            ),
-          ]),
-        ),
+            controller.jumpToPage(index);
+          }
+          selectedTab.value = tab.key;
+        },
       );
     });
   }
@@ -2652,27 +2636,41 @@ Widget _Card(
       Flexible(
         child: SizedBox(
           width: _kCardFixedWidth,
-          child: Card(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                        child: Text(
-                      translate(title),
-                      textAlign: TextAlign.start,
-                      style: const TextStyle(
-                        fontSize: _kTitleFontSize,
-                      ),
-                    )),
-                    ...?title_suffix
-                  ],
-                ).marginOnly(left: _kContentHMargin, top: 10, bottom: 10),
-                ...children
-                    .map((e) => e.marginOnly(top: 4, right: _kContentHMargin)),
-              ],
-            ).marginOnly(bottom: 10),
-          ).marginOnly(left: _kCardLeftMargin, top: 15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                      child: Text(
+                    translate(title),
+                    textAlign: TextAlign.start,
+                    style: const TextStyle(
+                      fontSize: NimbusType.headline,
+                      fontWeight: NimbusType.semibold,
+                      color: NimbusColors.textPrimary,
+                    ),
+                  )),
+                  ...?title_suffix
+                ],
+              ).marginOnly(left: NimbusSpace.s2, bottom: NimbusSpace.s3),
+              Container(
+                padding: const EdgeInsets.only(
+                    top: NimbusSpace.s3, bottom: NimbusSpace.s5),
+                decoration: BoxDecoration(
+                  color: NimbusColors.surfaceRaise,
+                  borderRadius: NimbusRadii.all(NimbusRadii.lg),
+                  border: Border.all(color: NimbusColors.divider),
+                ),
+                child: Column(
+                  children: children
+                      .map((e) => e.marginOnly(top: 4, right: _kContentHMargin))
+                      .toList(),
+                ),
+              ),
+            ],
+          ).marginOnly(
+              left: NimbusSpace.s12, right: NimbusSpace.s6, top: NimbusSpace.s10),
         ),
       ),
     ],
@@ -2729,34 +2727,34 @@ Widget _OptionCheckBox(
     child: Obx(
       () => Row(
         children: [
-          Checkbox(
-                  value: ref.value,
-                  onChanged: enabled && !isOptFixed ? onChanged : null)
-              .marginOnly(right: 5),
           Offstage(
             offstage: !ref.value || checkedIcon == null,
             child: checkedIcon?.marginOnly(right: 5),
           ),
-          // Without `trailing`, keep the original Expanded(Text) layout.
-          if (trailing == null)
-            Expanded(
+          Expanded(
+            child: Row(children: [
+              Flexible(
                 child: Text(
-              translate(label),
-              style: TextStyle(color: disabledTextColor(context, enabled)),
-            ))
-          else ...[
-            Flexible(
-              child: Text(
-                translate(label),
-                style: TextStyle(color: disabledTextColor(context, enabled)),
+                  translate(label),
+                  style: TextStyle(
+                      fontSize: _kContentFontSize,
+                      color: disabledTextColor(context, enabled)),
+                ),
               ),
+              if (trailing != null) trailing,
+            ]),
+          ),
+          SizedBox(
+            height: 30,
+            child: FittedBox(
+              child: Switch(
+                  value: ref.value,
+                  onChanged: enabled && !isOptFixed ? onChanged : null),
             ),
-            trailing,
-            const Spacer(),
-          ],
+          ),
         ],
       ),
-    ).marginOnly(left: _kCheckBoxLeftMargin),
+    ).marginOnly(left: _kContentHMargin),
     onTap: enabled && !isOptFixed
         ? () {
             onChanged(!ref.value);

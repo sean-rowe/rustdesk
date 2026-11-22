@@ -112,7 +112,7 @@ class _FileManagerTabPageState extends State<FileManagerTabPage> {
   @override
   Widget build(BuildContext context) {
     final child = Scaffold(
-        backgroundColor: Theme.of(context).cardColor,
+        backgroundColor: Colors.transparent,
         body: DesktopTab(
           controller: tabController,
           onWindowCloseButton: handleWindowCloseButton,

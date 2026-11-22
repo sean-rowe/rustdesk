@@ -4,7 +4,6 @@ import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
-import 'package:get/get.dart';
 
 /// The fill behind a Nimbus window. On Linux the runner gives the window an
 /// RGBA visual when a compositor runs, so the translucent glass lets the
@@ -12,8 +11,9 @@ import 'package:get/get.dart';
 Color nimbusWindowFill() =>
     isLinux ? NimbusColors.surfaceWindow : NimbusColors.windowOpaque;
 
-/// The Nimbus window body: glass fill, hairline edge and the window corner.
-/// Corners square off while the window is maximized or full screen.
+/// The Nimbus window body: the glass fill behind a window's content. On
+/// Linux the corner, hairline edge and shadow come from
+/// [buildVirtualWindowFrame], which wraps every window.
 class NimbusWindowFrame extends StatelessWidget {
   final Widget child;
 
@@ -21,34 +21,7 @@ class NimbusWindowFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isMacOS || kUseCompatibleUiMode) {
-      return ColoredBox(color: nimbusWindowFill(), child: child);
-    }
-    return Obx(() {
-      final square =
-          stateGlobal.isMaximized.isTrue || stateGlobal.fullscreen.isTrue;
-      final radius = NimbusRadii.all(square ? 0 : NimbusRadii.window);
-      return ClipRRect(
-        borderRadius: radius,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: nimbusWindowFill(),
-            borderRadius: radius,
-          ),
-          position: DecorationPosition.background,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: radius,
-              border: square
-                  ? null
-                  : Border.all(color: NimbusColors.borderWindow),
-            ),
-            position: DecorationPosition.foreground,
-            child: child,
-          ),
-        ),
-      );
-    });
+    return ColoredBox(color: nimbusWindowFill(), child: child);
   }
 }
 

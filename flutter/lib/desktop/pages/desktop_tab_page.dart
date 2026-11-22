@@ -125,6 +125,7 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
         state: tabController.state,
         tabController: tabController,
         invisibleTabKeys: RxList.empty(),
+        showExtras: false,
       ),
       center: canOpenSettings
           ? Obx(() => NimbusSegmentedControl<String>(

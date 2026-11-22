@@ -11,6 +11,7 @@ import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/remote_page.dart';
 import 'package:flutter_hbb/desktop/pages/view_camera_page.dart';
+import 'package:flutter_hbb/desktop/widgets/nimbus/nimbus_window.dart';
 import 'package:flutter_hbb/desktop/widgets/traffic_lights.dart';
 import 'package:flutter_hbb/main.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
@@ -527,6 +528,12 @@ class _DesktopTabState extends State<DesktopTab>
 
   @override
   Widget build(BuildContext context) {
+    final content = _buildContent();
+    // The main window draws its own Nimbus frame around its title bar.
+    return widget.showTabBar ? NimbusWindowFrame(child: content) : content;
+  }
+
+  Widget _buildContent() {
     return Column(children: [
       Obx(() {
         if (widget.showTabBar &&
@@ -537,9 +544,10 @@ class _DesktopTabState extends State<DesktopTab>
             height: _kTabBarHeight,
             child: Column(
               children: [
-                SizedBox(
+                Container(
                   height:
                       showBottomDivider ? _kTabBarHeight - 1 : _kTabBarHeight,
+                  color: const Color(0x0AFFFFFF),
                   child: _buildBar(),
                 ),
                 if (showBottomDivider)
@@ -649,23 +657,26 @@ class _DesktopTabState extends State<DesktopTab>
                         child: const SizedBox(
                           width: 78,
                         )),
+                    WindowActionPanel(
+                      isMainWindow: isMainWindow,
+                      state: state,
+                      tabController: controller,
+                      invisibleTabKeys: invisibleTabKeys,
+                      showMinimize: showMinimize,
+                      showMaximize: showMaximize,
+                      showClose: showClose,
+                      onClose: onWindowCloseButton,
+                      showExtras: false,
+                    ),
                     Offstage(
-                      offstage: kUseCompatibleUiMode || isMacOS,
-                      child: Row(children: [
-                        Offstage(
-                          offstage: !showLogo,
-                          child: loadIcon(16),
-                        ),
-                        Offstage(
-                            offstage: !showTitle,
-                            child: const Text(
-                              "RustDesk",
-                              style: TextStyle(fontSize: 13),
-                            ).marginOnly(left: 2))
-                      ]).marginOnly(
-                        left: 5,
-                        right: 10,
-                      ),
+                      offstage: kUseCompatibleUiMode || isMacOS || !showTitle,
+                      child: Text(
+                        bind.mainGetAppNameSync(),
+                        style: const TextStyle(
+                            fontSize: NimbusType.footnote,
+                            fontWeight: NimbusType.semibold,
+                            color: NimbusColors.textSecondary),
+                      ).marginOnly(right: NimbusSpace.s5),
                     ),
                     Expanded(
                         child: Listener(
@@ -711,7 +722,8 @@ class _DesktopTabState extends State<DesktopTab>
           showClose: showClose,
           onClose: onWindowCloseButton,
           labelGetter: labelGetter,
-        ).paddingOnly(left: 10)
+          showControls: false,
+        ).paddingOnly(left: 10, right: NimbusSpace.s2)
       ],
     );
   }
@@ -731,6 +743,13 @@ class WindowActionPanel extends StatefulWidget {
   final RxList<String> invisibleTabKeys;
   final LabelGetter? labelGetter;
 
+  /// Window controls (traffic lights). Nimbus puts them on the leading edge,
+  /// so a bar shows one panel with controls only and one with the rest.
+  final bool showControls;
+
+  /// The hidden-tab dropdown and [tail].
+  final bool showExtras;
+
   const WindowActionPanel(
       {Key? key,
       required this.isMainWindow,
@@ -742,7 +761,9 @@ class WindowActionPanel extends StatefulWidget {
       this.showMaximize = true,
       this.showClose = true,
       this.onClose,
-      this.labelGetter})
+      this.labelGetter,
+      this.showControls = true,
+      this.showExtras = true})
       : super(key: key);
 
   @override
@@ -773,6 +794,7 @@ class WindowActionPanelState extends State<WindowActionPanel> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        if (widget.showExtras)
         Obx(() {
           if (showTabDowndown() && existingInvisibleTab().isNotEmpty) {
             return _TabDropDownButton(
@@ -783,8 +805,8 @@ class WindowActionPanelState extends State<WindowActionPanel> {
             return Offstage();
           }
         }),
-        if (widget.tail != null) widget.tail!,
-        if (!kUseCompatibleUiMode && !isMacOS)
+        if (widget.showExtras && widget.tail != null) widget.tail!,
+        if (widget.showControls && !kUseCompatibleUiMode && !isMacOS)
           Obx(() => TrafficLights(
                 onClose: widget.showClose ? _close : null,
                 onMinimize: widget.showMinimize ? _minimize : null,
@@ -1146,61 +1168,39 @@ class _TabState extends State<_Tab> with RestorationMixin {
   @override
   Widget build(BuildContext context) {
     bool isSelected = widget.index == widget.selected;
-    bool showDivider =
-        widget.index != widget.selected - 1 && widget.index != widget.selected;
     RxBool hover = restoreHover.value.obs;
-    return Ink(
-      child: InkWell(
-        onHover: (value) {
-          hover.value = value;
-          restoreHover.value = value;
-        },
-        onTap: () => widget.onTap(),
-        child: Container(
-            decoration: isSelected && widget.selectedBorderColor != null
-                ? BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: widget.selectedBorderColor!,
-                        width: 1,
-                      ),
-                    ),
-                  )
-                : null,
-            child: Container(
+    return InkWell(
+      onHover: (value) {
+        hover.value = value;
+        restoreHover.value = value;
+      },
+      onTap: () => widget.onTap(),
+      borderRadius: NimbusRadii.all(NimbusRadii.sm),
+      hoverColor: Colors.transparent,
+      child: Obx(() => AnimatedContainer(
+            duration: NimbusMotion.fast,
+            curve: NimbusMotion.standard,
+            margin: const EdgeInsets.symmetric(
+                vertical: 3, horizontal: NimbusSpace.s1),
+            decoration: BoxDecoration(
               color: isSelected
                   ? widget.selectedTabBackgroundColor
-                  : widget.unSelectedTabBackgroundColor,
-              child: Row(
+                  : (hover.value
+                      ? NimbusColors.hoverRow
+                      : widget.unSelectedTabBackgroundColor),
+              borderRadius: NimbusRadii.all(NimbusRadii.sm),
+            ),
+            child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(
-                      // _kTabBarHeight also displays normally
-                      height: _showTabBarBottomDivider(widget.tabType)
-                          ? _kTabBarHeight - 1
-                          : _kTabBarHeight,
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            _buildTabContent(),
-                            Obx((() => _CloseButton(
-                                  visible: hover.value && widget.closable,
-                                  tabSelected: isSelected,
-                                  onClose: () => widget.onClose(),
-                                )))
-                          ])).paddingOnly(left: 10, right: 5),
-                  Offstage(
-                    offstage: !showDivider,
-                    child: VerticalDivider(
-                      width: 1,
-                      indent: _kDividerIndent,
-                      endIndent: _kDividerIndent,
-                      color: MyTheme.tabbar(context).dividerColor,
-                    ),
-                  )
-                ],
-              ),
-            )),
-      ),
+                  _buildTabContent(),
+                  _CloseButton(
+                    visible: hover.value && widget.closable,
+                    tabSelected: isSelected,
+                    onClose: () => widget.onClose(),
+                  ),
+                ]).paddingOnly(left: NimbusSpace.s4, right: NimbusSpace.s2),
+          )),
     );
   }
 
@@ -1480,7 +1480,7 @@ class TabbarTheme extends ThemeExtension<TabbarTheme> {
       dividerColor: NimbusColors.divider,
       hoverColor: NimbusColors.hoverRow,
       closeHoverColor: NimbusColors.hoverControl,
-      selectedTabBackgroundColor: NimbusColors.surfaceRaise);
+      selectedTabBackgroundColor: NimbusColors.hoverControl);
 
   @override
   ThemeExtension<TabbarTheme> copyWith({

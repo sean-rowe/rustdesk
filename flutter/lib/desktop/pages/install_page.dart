@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/desktop/widgets/install_directory_confirmation.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
@@ -47,7 +48,7 @@ class _InstallPageState extends State<InstallPage> {
       enableResizeEdges: windowManagerEnableResizeEdges,
       child: Container(
         child: Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.background,
+            backgroundColor: Colors.transparent,
             body: DesktopTab(controller: tabController)),
       ),
     );
@@ -216,10 +217,10 @@ class _InstallPageBodyState extends State<_InstallPageBody>
                   padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isDarkTheme
-                        ? Color.fromARGB(135, 87, 87, 90)
+                        ? NimbusColors.surfaceRaise
                         : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey),
+                    borderRadius: NimbusRadii.all(NimbusRadii.lg),
+                    border: Border.all(color: NimbusColors.divider),
                   ),
                   child: Row(
                     children: [

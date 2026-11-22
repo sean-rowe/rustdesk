@@ -265,7 +265,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget buildPopupMenu(BuildContext context) {
-    return _BoardIconButton(
+    return NimbusIconButton(
       icon: Icons.more_horiz,
       tooltip: translate('Settings'),
       onTap: DesktopTabPage.onAddSetting,
@@ -327,7 +327,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 ),
               ).marginOnly(right: NimbusSpace.s2),
             if (!bind.isDisableSettings())
-              _BoardIconButton(
+              NimbusIconButton(
                 icon: Icons.edit_outlined,
                 tooltip: translate('Change Password'),
                 onTap: () =>
@@ -1079,48 +1079,3 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
   });
 }
 
-/// A small square icon button used on the "Your Desktop" panel.
-class _BoardIconButton extends StatefulWidget {
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  const _BoardIconButton(
-      {required this.icon, required this.tooltip, required this.onTap});
-
-  @override
-  State<_BoardIconButton> createState() => _BoardIconButtonState();
-}
-
-class _BoardIconButtonState extends State<_BoardIconButton> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: widget.tooltip,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: NimbusMotion.fast,
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: _hovered ? NimbusColors.hoverControl : Colors.transparent,
-              borderRadius: NimbusRadii.all(NimbusRadii.xs),
-            ),
-            child: Icon(widget.icon,
-                size: 16,
-                color: _hovered
-                    ? NimbusColors.textPrimary
-                    : NimbusColors.textTertiary),
-          ),
-        ),
-      ),
-    );
-  }
-}

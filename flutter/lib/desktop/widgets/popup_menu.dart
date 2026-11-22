@@ -3,6 +3,7 @@ import 'dart:core';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderListBody;
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:get/get.dart';
 
 import '../../common.dart';
@@ -971,6 +972,17 @@ class _OutsideParentMenuClipper extends CustomClipper<Path> {
       parentBounds != oldClipper.parentBounds;
 }
 
+/// Nimbus menu items invert to the accent fill while hovered or focused.
+final ButtonStyle _nimbusMenuEntryStyle = ButtonStyle(
+  shape: MaterialStatePropertyAll(
+      RoundedRectangleBorder(borderRadius: NimbusRadii.all(NimbusRadii.xs))),
+  overlayColor: MaterialStateProperty.resolveWith((states) =>
+      states.contains(MaterialState.hovered) ||
+              states.contains(MaterialState.focused)
+          ? NimbusColors.accentFill
+          : null),
+);
+
 class MenuEntryButton<T> extends MenuEntryBase<T> {
   final Widget Function(TextStyle? style) childBuilder;
   Function() proc;
@@ -994,6 +1006,7 @@ class MenuEntryButton<T> extends MenuEntryBase<T> {
     return Obx(() => Container(
         width: conf.boxWidth,
         child: TextButton(
+          style: _nimbusMenuEntryStyle,
           onPressed: super.enabled!.value
               ? () {
                   if (super.dismissOnClicked && Navigator.canPop(context)) {
