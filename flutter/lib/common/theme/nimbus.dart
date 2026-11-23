@@ -67,6 +67,11 @@ abstract final class NimbusColors {
   static const Color warningBright = Color(0xFFFF9F0A);
   static const Color danger = Color(0xFFEF5D6C);
   static const Color dangerDeep = Color(0xFFC43F4F);
+
+  // Terminal text on [surfaceTerminal]
+  static const Color terminalText = Color(0xFFD8F5E0);
+  static const Color terminalGreen = Color(0xFF7EE0A4);
+  static const Color terminalDim = Color(0xFF9B93C9);
 }
 
 /// The Nimbus corner ladder. Do not add steps.
