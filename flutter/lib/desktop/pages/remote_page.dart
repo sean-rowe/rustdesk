@@ -1012,6 +1012,12 @@ class _RemotePageState extends State<RemotePage>
             QualityMonitor(_ffi.qualityMonitorModel), null, null),
       ),
     );
+    paints.add(Positioned(
+      left: 0,
+      right: 0,
+      bottom: 14,
+      child: IgnorePointer(child: Center(child: InputBlockedPill(id: widget.id))),
+    ));
     return Stack(
       children: paints,
     );
