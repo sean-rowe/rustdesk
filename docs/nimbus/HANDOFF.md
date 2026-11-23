@@ -253,11 +253,14 @@ Nimbus OS-XFCE project:
    - XFCE's built-in one: `xfconf-query -c xfwm4 -p /general/use_compositing -s false`
    - Another picom: `pkill picom`
 
-   Then start picom with blur. `picom --version` tells you which command fits:
+   Then start picom with blur. This needs picom 9 or newer, because picom 8
+   has no `dual_kawase` blur; upgrade if `picom --version` reports 8.x.
+   `--config /dev/null` keeps your own picom config, such as a
+   `blur-background-exclude` rule, out of the check.
    - picom 10 or newer:
-     `picom --backend glx --blur-method dual_kawase --blur-strength 5`
-   - picom 8.x or 9.x, where `dual_kawase` needs the experimental backends:
-     `picom --experimental-backends --backend glx --blur-method dual_kawase --blur-strength 5`
+     `picom --config /dev/null --backend glx --blur-method dual_kawase --blur-strength 5`
+   - picom 9.x, where `dual_kawase` needs the experimental backends:
+     `picom --config /dev/null --experimental-backends --backend glx --blur-method dual_kawase --blur-strength 5`
 
    When you're done, stop this picom (`pkill picom`) and restore the compositor
    you had before. For XFCE's, run the same `xfconf-query` command with
