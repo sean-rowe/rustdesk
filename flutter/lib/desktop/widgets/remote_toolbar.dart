@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/theme/nimbus.dart';
+import 'package:flutter_hbb/desktop/widgets/nimbus/recording_pill.dart';
 import 'package:flutter_hbb/common/widgets/audio_input.dart';
 import 'package:flutter_hbb/common/widgets/dialog.dart';
 import 'package:flutter_hbb/common/widgets/keyboard_shortcuts/display.dart';
@@ -2985,18 +2986,24 @@ class _RecordMenu extends StatelessWidget {
     final visible = !hideRecordingButton &&
         (recordingModel.start || ffi.permissions['recording'] != false);
     if (!visible) return Offstage();
-    return _IconMenuButton(
-      assetName: 'assets/rec.svg',
-      tooltip: recordingModel.start
-          ? 'Stop session recording'
-          : 'Start session recording',
-      onPressed: () => recordingModel.toggle(),
-      color: recordingModel.start
-          ? _ToolbarTheme.redColor
-          : _ToolbarTheme.blueColor,
-      hoverColor: recordingModel.start
-          ? _ToolbarTheme.hoverRedColor
-          : _ToolbarTheme.hoverBlueColor,
+    button(String tooltip) => _IconMenuButton(
+          assetName: 'assets/rec.svg',
+          tooltip: tooltip,
+          onPressed: () => recordingModel.toggle(),
+          color: recordingModel.start
+              ? _ToolbarTheme.redColor
+              : _ToolbarTheme.blueColor,
+          hoverColor: recordingModel.start
+              ? _ToolbarTheme.hoverRedColor
+              : _ToolbarTheme.hoverBlueColor,
+        );
+    if (!recordingModel.start) return button('Start session recording');
+    // While recording, the tooltip also shows the elapsed time.
+    return RecordingTicker(
+      model: recordingModel,
+      builder: (context, elapsed) => button(
+          '${translate('Stop session recording')} · '
+          '${formatRecordingElapsed(elapsed)}'),
     );
   }
 }

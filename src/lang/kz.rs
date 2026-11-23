@@ -837,5 +837,6 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("accessible-devices-login-tip", ""),
         ("Yours", ""),
         ("Shared by {}", ""),
+        ("Recording stopped", ""),
     ].iter().cloned().collect();
 }

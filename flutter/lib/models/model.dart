@@ -3978,11 +3978,33 @@ class QualityMonitorModel with ChangeNotifier {
   }
 }
 
+/// A recording length as HH:MM:SS.
+String formatRecordingElapsed(Duration elapsed) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(elapsed.inHours)}:${two(elapsed.inMinutes % 60)}:'
+      '${two(elapsed.inSeconds % 60)}';
+}
+
 class RecordingModel with ChangeNotifier {
   WeakReference<FFI> parent;
   RecordingModel(this.parent);
   bool _start = false;
   bool get start => _start;
+
+  /// The clock the elapsed time is read from; tests replace it.
+  @visibleForTesting
+  DateTime Function() now = DateTime.now;
+
+  DateTime? _startedAt;
+
+  /// When the current recording started, or null while not recording.
+  DateTime? get startedAt => _startedAt;
+
+  /// How long the current recording has run, or null while not recording.
+  Duration? get elapsed {
+    final startedAt = _startedAt;
+    return startedAt == null ? null : now().difference(startedAt);
+  }
 
   toggle() async {
     if (isIOS) return;
@@ -3998,6 +4020,16 @@ class RecordingModel with ChangeNotifier {
   }
 
   updateStatus(bool status) {
+    if (status && !_start) {
+      _startedAt = now();
+    } else if (!status && _start) {
+      final total = elapsed;
+      _startedAt = null;
+      if (total != null) {
+        showToast('${translate('Recording stopped')} · '
+            '${formatRecordingElapsed(total)}');
+      }
+    }
     _start = status;
     notifyListeners();
   }
