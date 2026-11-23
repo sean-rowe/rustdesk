@@ -1460,14 +1460,16 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
     if (!LISTS[0].items.includes(name) && DEVICES[name]) { LISTS[0].items.unshift(name); renderNav(); renderPeers(); }
     openWin('remote'); selectTab(name, true);
   }
-  const connectingTabs = new Set();
+  // Each connecting tab maps to its own timer, so closing a tab cancels its
+  // timer and a reconnect starts a fresh 1.1 s wait.
+  const connectingTabs = new Map();
+  const stopConnecting = n => { clearTimeout(connectingTabs.get(n)); connectingTabs.delete(n); };
   function selectTab(name, fresh) {
     active = name; renderTabs();
     $('#rHost').textContent = name;
     $('#termBody').innerHTML = termFor(name).join('<br>') + `<br><span class="p">sean@${name}</span><span class="d">:~$</span> <span class="caret"></span>`;
     if (fresh && !connectingTabs.has(name)) {
-      connectingTabs.add(name);
-      setTimeout(() => { connectingTabs.delete(name); if (active === name) showConnecting(name); }, 1100);
+      connectingTabs.set(name, setTimeout(() => { connectingTabs.delete(name); if (active === name) showConnecting(name); }, 1100));
     }
     showConnecting(name);
   }
@@ -1483,7 +1485,7 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
     });
   }
   function closeTab(n) {
-    tabs = tabs.filter(t => t !== n); connectingTabs.delete(n);
+    tabs = tabs.filter(t => t !== n); stopConnecting(n);
     if (!tabs.length) { resetRemoteExtras(); active = null; hideWin('remote', 'closing'); setChat(false); return; }
     if (active === n) selectTab(tabs[tabs.length - 1]); else renderTabs();
   }
@@ -1577,7 +1579,7 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
     };
     tick(); qmTimer = setInterval(tick, 1000);
   }
-  function resetRemoteExtras() { connectingTabs.clear(); setRecording(false, true); setQM(false); setBlock(false); $('#rOverlay').hidden = true; }
+  function resetRemoteExtras() { [...connectingTabs.keys()].forEach(stopConnecting); setRecording(false, true); setQM(false); setBlock(false); $('#rOverlay').hidden = true; }
 
   /* ---------- your ID ---------- */
   let myId = '123 456 789';

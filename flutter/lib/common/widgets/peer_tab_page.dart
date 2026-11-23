@@ -34,6 +34,10 @@ void _switchPeerTab(int tabIndex) {
   final model = gFFI.peerTabModel;
   if (tabIndex != model.currentTab) {
     model.setCurrentTabCachedPeers([]);
+    // The tab bar is hidden while selecting, so upstream never switches lists
+    // mid-selection. Leave selection mode here too, so bulk actions can't
+    // reach peers selected in a list that is no longer shown.
+    model.setMultiSelectionMode(false);
   }
   model.setCurrentTab(tabIndex);
   if (tabIndex == PeerTabIndex.ab.index) {

@@ -248,8 +248,20 @@ Nimbus OS-XFCE project:
    tests.
 3. Build and run on Linux with picom running with blur turned on. picom's
    default blur method is `none`, and then correct glass looks plain
-   translucent. Start it like this:
-   `picom --backend glx --blur-method dual_kawase --blur-strength 5`. Check:
+   translucent. Only one compositor can run at a time, so first stop any
+   compositor that is already running:
+   - XFCE's built-in one: `xfconf-query -c xfwm4 -p /general/use_compositing -s false`
+   - Another picom: `pkill picom`
+
+   Then start picom with blur. `picom --version` tells you which command fits:
+   - picom 10 or newer:
+     `picom --backend glx --blur-method dual_kawase --blur-strength 5`
+   - picom 8.x or 9.x, where `dual_kawase` needs the experimental backends:
+     `picom --experimental-backends --backend glx --blur-method dual_kawase --blur-strength 5`
+
+   When you're done, stop this picom (`pkill picom`) and restore the compositor
+   you had before. For XFCE's, run the same `xfconf-query` command with
+   `-s true`. Check:
    - Window glass blurs the wallpaper.
    - Every new control can be reached with Tab and shows the focus ring.
    - Text never shows through dialogs.
