@@ -1143,7 +1143,7 @@ class _MonitorMenu extends StatelessWidget {
         style: TextStyle(
           color: i == curDisplay
               ? _ToolbarTheme.blueColor
-              : _ToolbarTheme.inactiveColor,
+              : _ToolbarTheme.monitorNumberColor,
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
