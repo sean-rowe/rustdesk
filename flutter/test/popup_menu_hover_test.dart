@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_hbb/common.dart' show MyTheme;
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/desktop/widgets/popup_menu.dart';
 
 import 'request_approval_menu_test.dart' as menu;
@@ -20,7 +21,7 @@ void main() {
         await tester.pump(Duration(milliseconds: milliseconds));
         final background = tester.widget<PhysicalShape>(find.descendant(
             of: menu.approvalRow, matching: find.byType(PhysicalShape)).first);
-        expect(background.color, theme.colorScheme.onSurface.withOpacity(0.08));
+        expect(background.color, NimbusColors.accentFill);
         final innerButton = find.ancestor(
             of: find.text('Request approval'),
             matching: find.byType(TextButton)).first;
@@ -47,8 +48,7 @@ void main() {
       final innerButton =
           find.ancestor(of: text, matching: find.byType(TextButton)).first;
       final rowInk = Material.of(tester.element(innerButton)) as RenderObject;
-      expect(rowInk,
-          paints..rect(color: theme.colorScheme.onSurface.withOpacity(0.08)));
+      expect(rowInk, paints..rect(color: NimbusColors.accentFill));
       final innerInk = Material.of(tester.element(text)) as RenderObject;
       expect(innerInk, paints..rect(color: Colors.transparent));
       await tester.tap(text);
@@ -76,8 +76,7 @@ void main() {
         expect(Focus.of(tester.element(text)).hasPrimaryFocus, isTrue);
         await tester.pumpAndSettle();
         final ink = Material.of(tester.element(button)) as RenderObject;
-        expect(ink,
-            paints..rect(color: theme.colorScheme.onSurface.withOpacity(0.1)));
+        expect(ink, paints..rect(color: NimbusColors.accentFill));
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pump();
         if (action == 'Rename') {
@@ -176,12 +175,8 @@ void main() {
     final button =
         find.ancestor(of: target, matching: find.byType(TextButton)).first;
     final context = tester.element(button);
-    expect(
-        Material.of(context) as RenderObject,
-        paints
-          ..rect(
-              color:
-                  Theme.of(context).colorScheme.onSurface.withOpacity(0.08)));
+    expect(Material.of(context) as RenderObject,
+        paints..rect(color: NimbusColors.accentFill));
     await tester.tap(target);
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pumpAndSettle();

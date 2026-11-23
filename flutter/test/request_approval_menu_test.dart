@@ -3,6 +3,7 @@ import 'dart:ui' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/desktop/widgets/material_mod_popup_menu.dart'
     as mod_menu;
 import 'package:flutter_hbb/desktop/widgets/popup_menu.dart';
@@ -143,10 +144,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Terminal'), findsOneWidget);
     }
-    final highlight = Theme.of(tester.element(approvalRow))
-        .colorScheme
-        .onSurface
-        .withOpacity(0.08);
+    const highlight = NimbusColors.accentFill;
     expect(
         tester
             .widgetList<Material>(find.descendant(

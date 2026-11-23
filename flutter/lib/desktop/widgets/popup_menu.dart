@@ -894,14 +894,15 @@ class _PopupSubMenuItemState<T> extends State<_PopupSubMenuItem<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final highlight = Theme.of(context).colorScheme.onSurface.withOpacity(0.08);
+    const highlight = NimbusColors.accentFill;
     final trigger = Obx(() => MouseRegion(
           onEnter: (_) => _hoverTrigger(true),
           onExit: (_) => _hoverTrigger(false),
           child: TextButton(
             onPressed: widget.enabled.value ? _openSubmenu : null,
             style: ButtonStyle(
-              shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
+              shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+                  borderRadius: NimbusRadii.all(NimbusRadii.xs))),
               backgroundColor: MaterialStateProperty.resolveWith((states) =>
                   !states.contains(MaterialState.disabled) &&
                           (_submenuOpen ||
@@ -972,17 +973,6 @@ class _OutsideParentMenuClipper extends CustomClipper<Path> {
       parentBounds != oldClipper.parentBounds;
 }
 
-/// Nimbus menu items invert to the accent fill while hovered or focused.
-final ButtonStyle _nimbusMenuEntryStyle = ButtonStyle(
-  shape: MaterialStatePropertyAll(
-      RoundedRectangleBorder(borderRadius: NimbusRadii.all(NimbusRadii.xs))),
-  overlayColor: MaterialStateProperty.resolveWith((states) =>
-      states.contains(MaterialState.hovered) ||
-              states.contains(MaterialState.focused)
-          ? NimbusColors.accentFill
-          : null),
-);
-
 class MenuEntryButton<T> extends MenuEntryBase<T> {
   final Widget Function(TextStyle? style) childBuilder;
   Function() proc;
@@ -1006,7 +996,6 @@ class MenuEntryButton<T> extends MenuEntryBase<T> {
     return Obx(() => Container(
         width: conf.boxWidth,
         child: TextButton(
-          style: _nimbusMenuEntryStyle,
           onPressed: super.enabled!.value
               ? () {
                   if (super.dismissOnClicked && Navigator.canPop(context)) {
