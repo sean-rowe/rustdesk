@@ -831,5 +831,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Listening", ""),
         ("This local port is already forwarded", ""),
         ("Remote keyboard and mouse are blocked", ""),
+        ("Transfers", ""),
+        ("Clear finished", ""),
     ].iter().cloned().collect();
 }
