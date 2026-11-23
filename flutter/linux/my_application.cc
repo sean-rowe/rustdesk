@@ -87,6 +87,32 @@ static void side_buttons_init_for_window(GtkWindow* window, FlMethodChannel* cha
     G_CALLBACK(on_side_button_event), channel);
 }
 
+// Nimbus windows are glass, so ask the compositor to blur what is behind
+// them. This is KDE's blur hint, which KWin and picom (blur-background) honor.
+// The region is one rectangle larger than any screen, so it covers the window
+// at every size: KWin clips it to the window, and picom treats an empty region
+// as no hint at all. X11 only, a no-op elsewhere.
+static void set_blur_behind(GtkWidget* widget, gpointer user_data) {
+#ifdef GDK_WINDOWING_X11
+  GdkWindow* gdk_window = gtk_widget_get_window(widget);
+  if (gdk_window == NULL || !GDK_IS_X11_WINDOW(gdk_window)) return;
+  // x, y, width, height. Format-32 data is passed as longs.
+  const long region[4] = {0, 0, 16384, 16384};
+  gdk_property_change(gdk_window,
+                      gdk_atom_intern_static_string("_KDE_NET_WM_BLUR_BEHIND_REGION"),
+                      gdk_atom_intern_static_string("CARDINAL"), 32,
+                      GDK_PROP_MODE_REPLACE, (const guchar*)region, 4);
+#endif
+}
+
+static void request_blur_behind(GtkWindow* window) {
+  if (gtk_widget_get_realized(GTK_WIDGET(window))) {
+    set_blur_behind(GTK_WIDGET(window), NULL);
+  } else {
+    g_signal_connect(window, "realize", G_CALLBACK(set_blur_behind), NULL);
+  }
+}
+
 static void on_subwindow_created(FlPluginRegistry* registry) {
 #if defined(GDK_WINDOWING_WAYLAND) && defined(HAS_KEYBOARD_SHORTCUTS_INHIBIT)
   wayland_shortcuts_inhibit_init_for_subwindow(registry);
@@ -96,6 +122,7 @@ static void on_subwindow_created(FlPluginRegistry* registry) {
   FlView* view = FL_VIEW(registry);
   GtkWidget* toplevel = gtk_widget_get_toplevel(GTK_WIDGET(view));
   if (toplevel != NULL && GTK_IS_WINDOW(toplevel)) {
+    request_blur_behind(GTK_WINDOW(toplevel));
     FlMethodChannel* channel = side_buttons_create_channel(fl_view_get_engine(view));
     if (channel == NULL) return;
     side_buttons_init_for_window(GTK_WINDOW(toplevel), channel);
@@ -167,6 +194,7 @@ static void my_application_activate(GApplication* application) {
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
   try_set_transparent(window, gtk_window_get_screen(window), view);
+  request_blur_behind(window);
   gtk_widget_show(GTK_WIDGET(window));
   gtk_widget_show(GTK_WIDGET(view));
 
