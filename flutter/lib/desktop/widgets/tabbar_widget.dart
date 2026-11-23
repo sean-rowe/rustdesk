@@ -536,8 +536,11 @@ class _DesktopTabState extends State<DesktopTab>
   Widget _buildContent() {
     return Column(children: [
       Obx(() {
+        // Read the observable first: the main window passes showTabBar: false,
+        // and an Obx that reads nothing throws.
+        final showTabBar = stateGlobal.showTabBar.isTrue;
         if (widget.showTabBar &&
-            stateGlobal.showTabBar.isTrue &&
+            showTabBar &&
             !(kUseCompatibleUiMode && isHideSingleItem())) {
           final showBottomDivider = _showTabBarBottomDivider(tabType);
           return SizedBox(
