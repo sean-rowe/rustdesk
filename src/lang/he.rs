@@ -827,5 +827,8 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Request approval", "בקש אישור"),
         ("Forever", "לתמיד"),
         ("username-login-disabled-oidc-unavailable", "כניסה באמצעות שם משתמש וסיסמה מושבתת, ואין שיטות כניסה זמינות באמצעות OIDC."),
+        ("port-forward-tip", ""),
+        ("Listening", ""),
+        ("This local port is already forwarded", ""),
     ].iter().cloned().collect();
 }

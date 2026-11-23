@@ -827,5 +827,8 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Request approval", "મંજૂરીની વિનંતી કરો"),
         ("Forever", "કાયમ માટે"),
         ("username-login-disabled-oidc-unavailable", "વપરાશકર્તાનામ અને પાસવર્ડ વડે લૉગિન અક્ષમ છે અને કોઈ OIDC લૉગિન પદ્ધતિ ઉપલબ્ધ નથી."),
+        ("port-forward-tip", ""),
+        ("Listening", ""),
+        ("This local port is already forwarded", ""),
     ].iter().cloned().collect();
 }
