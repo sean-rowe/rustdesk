@@ -838,5 +838,8 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Yours", ""),
         ("Shared by {}", ""),
         ("Recording stopped", ""),
+        ("Opening the camera on {}...", ""),
+        ("Live", ""),
+        ("Camera", ""),
     ].iter().cloned().collect();
 }

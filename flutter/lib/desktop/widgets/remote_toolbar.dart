@@ -845,6 +845,9 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
       state: widget.state,
       setFullscreen: _setFullscreen,
     ));
+    if (widget.ffi.connType == ConnType.viewCamera) {
+      toolbarItems.add(_CameraSnapshotMenu(id: widget.id, ffi: widget.ffi));
+    }
     // Do not show keyboard for camera connection type.
     if (widget.ffi.connType == ConnType.defaultConn) {
       toolbarItems.add(_KeyboardMenu(id: widget.id, ffi: widget.ffi));
@@ -3004,6 +3007,35 @@ class _RecordMenu extends StatelessWidget {
       builder: (context, elapsed) => button(
           '${translate('Stop session recording')} · '
           '${formatRecordingElapsed(elapsed)}'),
+    );
+  }
+}
+
+/// A snapshot button for camera connections. It runs the Controls menu's
+/// own "Take screenshot" entry, so the cooldown and the merged-display
+/// message stay the same, and hides when the peer can't take screenshots.
+class _CameraSnapshotMenu extends StatelessWidget {
+  final String id;
+  final FFI ffi;
+  const _CameraSnapshotMenu({Key? key, required this.id, required this.ffi})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final supported = bind.sessionGetCommonSync(
+        sessionId: ffi.sessionId, key: 'is_screenshot_supported', param: '');
+    if (supported != 'true') return Offstage();
+    return _IconMenuButton(
+      icon: const Icon(Icons.photo_camera_outlined,
+          size: 18, color: Colors.white),
+      tooltip: 'Take screenshot',
+      onPressed: () {
+        final entries = toolbarControls(context, id, ffi)
+            .where((e) => e.actionId == kShortcutActionScreenshot);
+        if (entries.isNotEmpty) entries.first.onPressed?.call();
+      },
+      color: _ToolbarTheme.blueColor,
+      hoverColor: _ToolbarTheme.hoverBlueColor,
     );
   }
 }
