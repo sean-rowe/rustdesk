@@ -833,5 +833,9 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Remote keyboard and mouse are blocked", ""),
         ("Transfers", ""),
         ("Clear finished", ""),
+        ("login-sync-tip", ""),
+        ("accessible-devices-login-tip", ""),
+        ("Yours", ""),
+        ("Shared by {}", ""),
     ].iter().cloned().collect();
 }

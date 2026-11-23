@@ -2,12 +2,47 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common/hbbs/hbbs.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/common/widgets/login.dart';
 import 'package:flutter_hbb/common/widgets/peers_view.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 
 import '../../common.dart';
+
+/// Accessible devices while logged out: what the tab shows once you log in,
+/// and a Log In button that opens the login dialog.
+class AccessibleDevicesLoggedOut extends StatelessWidget {
+  const AccessibleDevicesLoggedOut({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.devices_other_outlined,
+                size: 40, color: NimbusColors.textTertiary),
+            const SizedBox(height: NimbusSpace.s6),
+            Text(
+              translate('accessible-devices-login-tip'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: NimbusType.body,
+                  height: 1.45,
+                  color: NimbusColors.textSecondary),
+            ),
+            const SizedBox(height: NimbusSpace.s8),
+            ElevatedButton(
+                onPressed: loginDialog, child: Text(translate("Login"))),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class MyGroup extends StatefulWidget {
   final EdgeInsets? menuPadding;
@@ -31,9 +66,7 @@ class _MyGroupState extends State<MyGroup> {
   Widget build(BuildContext context) {
     return Obx(() {
       if (!gFFI.userModel.isLogin) {
-        return Center(
-            child: ElevatedButton(
-                onPressed: loginDialog, child: Text(translate("Login"))));
+        return const AccessibleDevicesLoggedOut();
       } else if (gFFI.userModel.networkError.isNotEmpty) {
         return netWorkErrorWidget();
       } else if (gFFI.groupModel.groupLoading.value && gFFI.groupModel.emtpy) {

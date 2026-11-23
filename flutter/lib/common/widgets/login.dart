@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/hbbs/hbbs.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/user_model.dart';
 import 'package:get/get.dart';
@@ -113,12 +114,16 @@ class ButtonOP extends StatelessWidget {
     final branding = _oidcProviderBranding(op);
     final buttonLabel = translate("Continue with {${branding.label}}");
     return Row(children: [
-      Container(
+      Expanded(
+          child: SizedBox(
         height: height,
-        width: 200,
         child: Obx(() => ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
+              backgroundColor: NimbusColors.surfaceRaise,
+              foregroundColor: NimbusColors.textPrimary,
+              side: const BorderSide(color: NimbusColors.borderWindow),
+              shape: RoundedRectangleBorder(
+                  borderRadius: NimbusRadii.all(NimbusRadii.md)),
             ).copyWith(elevation: ButtonStyleButton.allOrNull(0.0)),
             onPressed:
                 curOP.value == 'rustdesk' || !canStartAuth() ? null : onTap,
@@ -140,7 +145,7 @@ class ButtonOP extends StatelessWidget {
                 ),
               ],
             ))),
-      ),
+      )),
     ]);
   }
 }
@@ -598,34 +603,38 @@ class LoginWidgetOP extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var children = ops
-        .map((op) => [
-              WidgetOP(
-                config: op,
-                curOP: curOP,
-                cbLogin: cbLogin,
-                startAuth: startAuth,
-                cancelAuth: cancelAuth,
-                canStartAuth: canStartAuth,
-              ),
-              const Divider(
-                indent: 5,
-                endIndent: 5,
-              )
-            ])
-        .expand((i) => i)
-        .toList();
-    if (children.isNotEmpty) {
-      children.removeLast();
+    // Nimbus: providers sit in a two-column grid; an odd one out keeps its
+    // half. Rows of Expanded cells, since the dialog measures intrinsic size.
+    Widget cell(ConfigOP op) => WidgetOP(
+          config: op,
+          curOP: curOP,
+          cbLogin: cbLogin,
+          startAuth: startAuth,
+          cancelAuth: cancelAuth,
+          canStartAuth: canStartAuth,
+        );
+    final rows = <Widget>[];
+    for (var i = 0; i < ops.length; i += 2) {
+      if (i > 0) rows.add(const SizedBox(height: NimbusSpace.s4));
+      rows.add(Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: cell(ops[i])),
+          if (ops.length > 1) ...[
+            const SizedBox(width: NimbusSpace.s4),
+            Expanded(
+                child: i + 1 < ops.length
+                    ? cell(ops[i + 1])
+                    : const SizedBox.shrink()),
+          ],
+        ],
+      ));
     }
     return SingleChildScrollView(
-        child: Container(
-            width: 200,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: children,
-            )));
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: rows,
+    ));
   }
 }
 
@@ -670,28 +679,28 @@ class LoginWidgetUserPass extends StatelessWidget {
               reRequestFocus: true,
               errorText: passMsg,
             ),
-            // NOT use Offstage to wrap LinearProgressIndicator
-            if (isInProgress) const LinearProgressIndicator(),
             const SizedBox(height: 12.0),
-            FittedBox(
-                child:
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Container(
-                height: 38,
-                width: 200,
+            Row(children: [
+              Expanded(
+                  child: SizedBox(
+                height: 36,
                 child: Obx(() => ElevatedButton(
-                      child: Text(
-                        translate('Login'),
-                        style: TextStyle(fontSize: 16),
-                      ),
+                      child: isInProgress
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: NimbusColors.textPrimary))
+                          : Text(translate('Login')),
                       onPressed: curOP.value.isEmpty && !isInProgress
                           ? () {
                               onLogin();
                             }
                           : null,
                     )),
-              ),
-            ])),
+              )),
+            ]),
           ],
         ));
   }
@@ -909,11 +918,18 @@ Future<bool?> _openLoginDialog() async {
                   height: 8.0,
                 ),
                 if (!hideAccountPasswordLogin)
-                  Center(
-                      child: Text(
-                    translate('or'),
-                    style: TextStyle(fontSize: 16),
-                  )),
+                  Row(children: [
+                    const Expanded(
+                        child: Divider(color: NimbusColors.dividerStrong)),
+                    Text(
+                      translate('or'),
+                      style: const TextStyle(
+                          fontSize: NimbusType.footnote,
+                          color: NimbusColors.textTertiary),
+                    ).marginSymmetric(horizontal: NimbusSpace.s4),
+                    const Expanded(
+                        child: Divider(color: NimbusColors.dividerStrong)),
+                  ]),
                 const SizedBox(
                   height: 8.0,
                 ),
@@ -951,9 +967,34 @@ Future<bool?> _openLoginDialog() async {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          translate('Login'),
-        ).marginOnly(top: MyTheme.dialogPadding),
+        Flexible(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: NimbusRadii.all(NimbusRadii.md),
+                child: loadIcon(36),
+              ),
+              const SizedBox(width: NimbusSpace.s6),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(translate('Login')),
+                    Text(
+                      translate('login-sync-tip'),
+                      style: const TextStyle(
+                          fontSize: NimbusType.footnote,
+                          fontWeight: NimbusType.regular,
+                          color: NimbusColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ).marginOnly(top: MyTheme.dialogPadding),
+        ),
         MouseRegion(
           onEnter: (_) => setState(() => isCloseHovered = true),
           onExit: (_) => setState(() => isCloseHovered = false),
