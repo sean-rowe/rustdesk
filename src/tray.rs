@@ -28,7 +28,7 @@ fn make_tray() -> hbb_common::ResultType<()> {
     use hbb_common::anyhow::Context;
     use tao::event_loop::{ControlFlow, EventLoopBuilder};
     use tray_icon::{
-        menu::{Menu, MenuEvent, MenuItem},
+        menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
         TrayIcon, TrayIconBuilder, TrayIconEvent as TrayEvent,
     };
 
@@ -75,11 +75,28 @@ fn make_tray() -> hbb_common::ResultType<()> {
         None
     };
     let open_i = MenuItem::new(translate("Open".to_owned()), true, None);
+    // A header with the ID and the service state, then the actions.
+    let mut shown_id = crate::ipc::get_id();
+    let id_i = MenuItem::new(id_label(&shown_id), false, None);
+    let status_i = MenuItem::new(translate("Service is running".to_owned()), false, None);
+    let copy_id_i = MenuItem::new(translate("Copy ID".to_owned()), true, None);
+    let header_separator = PredefinedMenuItem::separator();
+    tray_menu
+        .append_items(&[&id_i, &status_i, &header_separator, &open_i, &copy_id_i])
+        .ok();
+    let quit_separator = PredefinedMenuItem::separator();
     if let Some(quit_i) = &quit_i {
-        tray_menu.append_items(&[&open_i, quit_i]).ok();
-    } else {
-        tray_menu.append_items(&[&open_i]).ok();
+        tray_menu.append_items(&[&quit_separator, quit_i]).ok();
     }
+    // The ID comes from the service over IPC, so re-read it off the event
+    // loop; the header then follows a Change ID without a tray restart.
+    let (id_sender, id_receiver) = std::sync::mpsc::channel::<String>();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        if id_sender.send(crate::ipc::get_id()).is_err() {
+            break;
+        }
+    });
     let tooltip = |count: usize| {
         if count == 0 {
             format!(
@@ -187,8 +204,17 @@ fn make_tray() -> hbb_common::ResultType<()> {
             }
         }
 
+        if let Ok(id) = id_receiver.try_recv() {
+            if !id.is_empty() && id != shown_id {
+                id_i.set_text(id_label(&id));
+                shown_id = id;
+            }
+        }
+
         if let Ok(event) = menu_channel.try_recv() {
-            if let Some(quit_i) = &quit_i {
+            if event.id == copy_id_i.id() {
+                copy_id_to_clipboard();
+            } else if let Some(quit_i) = &quit_i {
                 if event.id == quit_i.id() {
                     /* failed in windows, seems no permission to check system process
                     if !crate::check_process("--server", false) {
@@ -260,6 +286,20 @@ fn make_tray() -> hbb_common::ResultType<()> {
             }
         }
     });
+}
+
+/// The tray header's ID line.
+fn id_label(id: &str) -> String {
+    format!("{}: {}", translate("ID".to_owned()), id)
+}
+
+/// Copies the current ID to the clipboard. The tray process keeps running,
+/// so on Linux it stays the owner of the copied text.
+fn copy_id_to_clipboard() {
+    let id = crate::ipc::get_id();
+    if let Err(err) = arboard::Clipboard::new().and_then(|mut board| board.set_text(id)) {
+        log::error!("Failed to copy the ID to the clipboard: {}", err);
+    }
 }
 
 #[cfg(windows)]

@@ -841,5 +841,6 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Opening the camera on {}...", ""),
         ("Live", ""),
         ("Camera", ""),
+        ("Copy ID", ""),
     ].iter().cloned().collect();
 }
