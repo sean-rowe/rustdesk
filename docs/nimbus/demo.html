@@ -1917,7 +1917,7 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
   }
   function closeTool(id) {
     const w = wins[id]; if (!w) return;
-    w._cleanup?.(); delete wins[id]; w.classList.add('closing');
+    clearTimeout(w._hideT); w._cleanup?.(); delete wins[id]; w.classList.add('closing');
     setTimeout(() => { w.remove(); updateDock(); }, 220);
   }
   function fieldTarget() {
@@ -2342,7 +2342,7 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
   /* ---------- reset ---------- */
   function reset(silent) {
     closeMenu(false); $('.scrim')?.remove(); $('.banner')?.remove();
-    Object.keys(wins).filter(k => k.startsWith('tool-')).forEach(k => { wins[k]._cleanup?.(); wins[k].remove(); delete wins[k]; });
+    Object.keys(wins).filter(k => k.startsWith('tool-')).forEach(k => { clearTimeout(wins[k]._hideT); wins[k]._cleanup?.(); wins[k].remove(); delete wins[k]; });
     tabs = []; active = null; setChat(false); resetRemoteExtras(); endIncoming();
     wins.remote.hidden = true; Object.values(wins).forEach(w => w.classList.remove('max'));
     svcOn = true; syncService(); current = 'recent'; filter = ''; listMode = false;
