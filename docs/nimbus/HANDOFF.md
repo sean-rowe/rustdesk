@@ -246,7 +246,10 @@ Nimbus OS-XFCE project:
    new.
 2. `flutter test test/` passes, including `nimbus_pressable_test.dart` and any new
    tests.
-3. Build and run on Linux with picom running. Check:
+3. Build and run on Linux with picom running with blur turned on. picom's
+   default blur method is `none`, and then correct glass looks plain
+   translucent. Start it like this:
+   `picom --backend glx --blur-method dual_kawase --blur-strength 5`. Check:
    - Window glass blurs the wallpaper.
    - Every new control can be reached with Tab and shows the focus ring.
    - Text never shows through dialogs.

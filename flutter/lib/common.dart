@@ -676,8 +676,11 @@ class MyTheme {
   );
 
   // Nimbus is dark-first: the stored light/system preference is ignored.
+  /// Nimbus is always dark on desktop. Mobile keeps the stored preference,
+  /// because its theme dialog still offers Light, Dark and Follow System.
   static ThemeMode getThemeModePreference() {
-    return ThemeMode.dark;
+    if (isDesktop) return ThemeMode.dark;
+    return themeModeFromString(bind.mainGetLocalOption(key: kCommConfKeyTheme));
   }
 
   static Future<void> changeDarkMode(ThemeMode mode) async {

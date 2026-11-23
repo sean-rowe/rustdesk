@@ -99,7 +99,24 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
         child: Column(children: [
           if (!kUseCompatibleUiMode) _buildTitleBar(),
           Expanded(
-            child: DesktopTab(controller: tabController, showTabBar: false),
+            // Compatible UI mode has no title bar, so it keeps the tab bar
+            // and its Settings button as the way between Home and Settings.
+            child: DesktopTab(
+              controller: tabController,
+              showTabBar: kUseCompatibleUiMode,
+              tail: kUseCompatibleUiMode
+                  ? Offstage(
+                      offstage:
+                          bind.isIncomingOnly() || bind.isDisableSettings(),
+                      child: ActionIcon(
+                        message: 'Settings',
+                        icon: IconFont.menu,
+                        onTap: DesktopTabPage.onAddSetting,
+                        isClose: false,
+                      ),
+                    )
+                  : null,
+            ),
           ),
         ]),
       ),
@@ -127,16 +144,23 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
         invisibleTabKeys: RxList.empty(),
         showExtras: false,
       ),
-      center: canOpenSettings
-          ? Obx(() => NimbusSegmentedControl<String>(
-                segments: [
-                  (kTabLabelHomePage, translate('Home')),
-                  (kTabLabelSettingPage, translate('Settings')),
-                ],
-                value: _selectedTabKey(),
-                onChanged: _selectTab,
-              ))
-          : const NimbusWindowTitle(),
+      // Incoming-only mode has no Settings entry here, but Settings can still
+      // be opened from the ID board, so the switch appears while it is open
+      // to give a way back to Home.
+      center: Obx(() {
+        final selected = _selectedTabKey();
+        if (!canOpenSettings && selected != kTabLabelSettingPage) {
+          return const NimbusWindowTitle();
+        }
+        return NimbusSegmentedControl<String>(
+          segments: [
+            (kTabLabelHomePage, translate('Home')),
+            (kTabLabelSettingPage, translate('Settings')),
+          ],
+          value: selected,
+          onChanged: _selectTab,
+        );
+      }),
     );
   }
 

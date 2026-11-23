@@ -1,7 +1,10 @@
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <title>Tether Nimbus Demo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
 /* Layout: a Nimbus desktop (menu bar, wallpaper, dock) hosting draggable Tether windows; at phone width the windows stack in one column. */
 :root {
@@ -681,6 +684,8 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
 .bar { width: 140px; height: 6px; flex: none; border-radius: 999px; background: rgba(255, 255, 255, .14); overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--nim-accent); }
 .q-row.done .bar i { background: var(--nim-success); }
+.q-row.failed .bar i { background: var(--nim-danger); }
+.q-row.failed .st { color: var(--nim-danger); }
 .q-row .st { width: 62px; text-align: right; color: var(--nim-text-tertiary); font-variant-numeric: tabular-nums; }
 .term-body { flex: 1; min-height: 0; overflow: auto; padding: 10px 14px; background: var(--nim-surface-terminal); font-family: var(--nim-font-mono); font-size: 12.5px; line-height: 1.6; color: var(--nim-term-text); cursor: text; }
 .term-out { white-space: pre-wrap; word-break: break-word; }
@@ -742,6 +747,8 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
 }
 </style>
 
+</head>
+<body>
 <div class="desk" id="desk">
   <header class="menubar" role="menubar" aria-label="Menu bar">
     <button class="mb-btn mb-mark mbi" id="mbSys" aria-label="System menu" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none"><path d="M12 6C16.6 6 19.4 9 19.4 13C19.4 18 14.3 21.4 12 22.9C9.7 21.4 4.6 18 4.6 13C4.6 9 7.4 6 12 6Z" fill="currentColor"/><path d="M12.6 6.3C13 3.8 15 3 16.7 3C16.3 5.3 14.7 6.4 12.9 6.5Z" fill="currentColor"/><g stroke="rgba(34,27,48,.4)" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10.7 12 8.7 17 10.7"/><path d="M6.6 13.8 12 11.6 17.4 13.8"/><path d="M8 16.9 12 15 16 16.9"/><path d="M9.4 19.7 12 18.3 14.6 19.7"/></g></svg></button>
@@ -999,8 +1006,26 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
     desk.append(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 1800);
   }
   function copy(text) {
-    const done = () => toast('Copied');
-    try { navigator.clipboard.writeText(text).then(done, done); } catch { done(); }
+    const failed = () => toast('Copy failed. Select the text and copy it yourself.');
+    try { navigator.clipboard.writeText(text).then(() => toast('Copied'), failed); } catch { failed(); }
+  }
+  // Keeps Tab and Shift+Tab inside a modal until it closes, then returns focus
+  // to whatever opened it. Returns the function that releases the trap.
+  function trapFocus(root, opener = document.activeElement) {
+    const onKey = e => {
+      if (e.key !== 'Tab' || !root.isConnected) return;
+      const items = $$('button:not(:disabled), input:not(:disabled), [tabindex="0"]', root).filter(x => x.offsetParent !== null);
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1], at = document.activeElement;
+      if (!root.contains(at)) { first.focus(); e.preventDefault(); }
+      else if (e.shiftKey && at === first) { last.focus(); e.preventDefault(); }
+      else if (!e.shiftKey && at === last) { first.focus(); e.preventDefault(); }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('keydown', onKey, true);
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    };
   }
   function grad(hue) { return `linear-gradient(155deg, color-mix(in srgb, ${hue} 65%, #5b46d6), color-mix(in srgb, color-mix(in srgb, ${hue} 65%, #5b46d6) 55%, #0c1018))`; }
   const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -1077,6 +1102,7 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
 
   /* ---------- dialog ---------- */
   function dialog({ title, text, html, input, check, ok = 'OK', onOk, danger, noCancel, validate }) {
+    const opener = openMenu?.anchor || document.activeElement;
     closeMenu(false);
     const s = document.createElement('div'); s.className = 'scrim';
     s.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgT">
@@ -1086,7 +1112,8 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
       ${check ? `<div class="chkrow"><button class="switch" role="switch" aria-checked="false" id="dlgChk" aria-label="${check}"></button><span>${check}</span></div>` : '<div style="height:12px"></div>'}
       <div class="acts">${noCancel ? '' : '<button class="btn glass sm" data-cancel>Cancel</button>'}<button class="btn ${danger ? 'danger' : 'primary'} sm" data-ok ${noCancel ? 'data-cancel' : ''}>${ok}</button></div></div>`;
     desk.append(s);
-    const close = () => s.remove(), inp = $('#dlgIn', s), err = $('.err', s);
+    const release = trapFocus(s, opener);
+    const close = () => { s.remove(); release(); }, inp = $('#dlgIn', s), err = $('.err', s);
     s.querySelector('[data-cancel]').onclick = close;
     s.querySelector('[data-ok]').onclick = () => {
       const v = inp?.value ?? '';
@@ -1107,14 +1134,16 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
   const saved = {};
   function focusWin(w) { w.style.zIndex = ++z; }
   function openWin(name) {
-    const w = wins[name]; if (!w.hidden && !w.classList.contains('minimizing')) { focusWin(w); return; }
+    const w = wins[name];
+    clearTimeout(w._hideT); w._hideT = null;
+    if (!w.hidden && !w.classList.contains('minimizing') && !w.classList.contains('closing')) { focusWin(w); return; }
     w.hidden = false; w.classList.remove('closing', 'minimizing'); w.classList.remove('pop'); void w.offsetWidth; w.classList.add('pop'); focusWin(w);
     updateDock();
     if (narrow()) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function hideWin(name, how) {
-    const w = wins[name]; w.classList.add(how);
-    setTimeout(() => { w.hidden = true; w.classList.remove(how); updateDock(); }, 220);
+    const w = wins[name]; clearTimeout(w._hideT); w.classList.add(how);
+    w._hideT = setTimeout(() => { w._hideT = null; w.hidden = true; w.classList.remove(how); updateDock(); }, 220);
   }
   function toggleMax(name) {
     const w = wins[name];
@@ -1431,15 +1460,21 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
     if (!LISTS[0].items.includes(name) && DEVICES[name]) { LISTS[0].items.unshift(name); renderNav(); renderPeers(); }
     openWin('remote'); selectTab(name, true);
   }
+  const connectingTabs = new Set();
   function selectTab(name, fresh) {
     active = name; renderTabs();
     $('#rHost').textContent = name;
     $('#termBody').innerHTML = termFor(name).join('<br>') + `<br><span class="p">sean@${name}</span><span class="d">:~$</span> <span class="caret"></span>`;
-    if (fresh) {
-      $('#screen').classList.add('connecting'); $('#connecting').hidden = false;
-      $('#connectingText').textContent = `Connecting to ${name}…`;
-      setTimeout(() => { if (active !== name) return; $('#connecting').hidden = true; $('#screen').classList.remove('connecting'); }, 1100);
+    if (fresh && !connectingTabs.has(name)) {
+      connectingTabs.add(name);
+      setTimeout(() => { connectingTabs.delete(name); if (active === name) showConnecting(name); }, 1100);
     }
+    showConnecting(name);
+  }
+  function showConnecting(name) {
+    const on = connectingTabs.has(name);
+    $('#screen').classList.toggle('connecting', on); $('#connecting').hidden = !on;
+    if (on) $('#connectingText').textContent = `Connecting to ${name}…`;
   }
   function renderTabs() {
     $('#tabs').innerHTML = tabs.map(t => `<button class="tabchip" role="tab" aria-selected="${t === active}" data-t="${t}">${I.tabMon}<span>${t}</span><span class="x" role="button" tabindex="-1" aria-label="Close ${t}">${I.x}</span></button>`).join('');
@@ -1448,7 +1483,7 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
     });
   }
   function closeTab(n) {
-    tabs = tabs.filter(t => t !== n);
+    tabs = tabs.filter(t => t !== n); connectingTabs.delete(n);
     if (!tabs.length) { resetRemoteExtras(); active = null; hideWin('remote', 'closing'); setChat(false); return; }
     if (active === n) selectTab(tabs[tabs.length - 1]); else renderTabs();
   }
@@ -1542,7 +1577,7 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
     };
     tick(); qmTimer = setInterval(tick, 1000);
   }
-  function resetRemoteExtras() { setRecording(false, true); setQM(false); setBlock(false); $('#rOverlay').hidden = true; }
+  function resetRemoteExtras() { connectingTabs.clear(); setRecording(false, true); setQM(false); setBlock(false); $('#rOverlay').hidden = true; }
 
   /* ---------- your ID ---------- */
   let myId = '123 456 789';
@@ -1586,7 +1621,8 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
       <p>Finish signing in to ${p} in the browser window that opened. This window continues when you're done.</p>
       <div class="acts"><button class="btn glass sm" data-cancel>Cancel</button></div></div>`);
     let timer;
-    const close = () => { clearTimeout(timer); s.remove(); };
+    const release = trapFocus(s);
+    const close = () => { clearTimeout(timer); s.remove(); release(); };
     const wire = () => {
       $('[data-cancel]', s).onclick = close;
       const f = $('form', s); if (!f) return;
@@ -1659,7 +1695,7 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
     const queue = [];
     body.innerHTML = '<div class="ft"></div><div class="ft-queue" hidden></div>';
     const q = $('.ft-queue', body);
-    q.addEventListener('pointerdown', e => {
+    q.addEventListener('click', e => {
       if (!e.target.closest('[data-clearq]')) return;
       for (let i = queue.length - 1; i >= 0; i--) if (queue[i].done) queue.splice(i, 1);
       renderQueue();
@@ -1714,12 +1750,13 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
       q.hidden = !queue.length;
       if (!queue.length) return;
       q.innerHTML = `<div class="q-head"><span>Transfers</span>${queue.some(j => j.done) ? '<button class="btn glass sm" data-clearq>Clear Finished</button>' : ''}</div>` +
-        queue.map(j => `<div class="q-row ${j.done ? 'done' : ''}"><span class="dirn">${j.up ? I.upload : I.download}</span><span class="nm">${esc(j.n)}<small>${j.up ? `to ${esc(name)}` : 'to this computer'}</small></span>
-          <span class="bar"><i style="width:${(j.pct * 100).toFixed(1)}%"></i></span><span class="st">${j.done ? 'Done' : Math.round(j.pct * 100) + '%'}</span><span class="st">${fmtSize(j.size)}</span></div>`).join('');
+        queue.map(j => `<div class="q-row ${j.failed ? 'failed' : j.done ? 'done' : ''}"><span class="dirn">${j.up ? I.upload : I.download}</span><span class="nm">${esc(j.n)}<small>${j.up ? `to ${esc(name)}` : 'to this computer'}</small></span>
+          <span class="bar"><i style="width:${(j.pct * 100).toFixed(1)}%"></i></span><span class="st">${j.failed ? 'Failed' : j.done ? 'Done' : Math.round(j.pct * 100) + '%'}</span><span class="st">${fmtSize(j.size)}</span></div>`).join('');
       $$('.q-row', q).forEach((r, i) => { queue[i].bar = $('.bar i', r); queue[i].st = $('.st', r); });
     }
     function transfer(side) {
       const src = panes[side], dst = panes[side === 'L' ? 'R' : 'L'], from = walk(src.fs, src.path), to = walk(dst.fs, dst.path);
+      const toFs = dst.fs, toPath = [...dst.path];
       const items = from.kids.filter(k => src.sel.has(k.n)); src.sel.clear();
       items.forEach(item => {
         const job = { n: item.n, size: sizeOf(item), up: side === 'L', pct: 0, done: false };
@@ -1733,9 +1770,11 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
             requestAnimationFrame(step); return;
           }
           job.done = true;
-          to.kids = to.kids.filter(k => k.n !== item.n); to.kids.push(cloneNode(item));
+          const stillThere = toPath.reduce((d, n) => d?.kids.find(k => k.n === n && k.kids), toFs.root) === to;
+          if (stillThere) { to.kids = to.kids.filter(k => k.n !== item.n); to.kids.push(cloneNode(item)); }
+          else { job.failed = true; toast(`Couldn't save ${item.n}. Its destination folder was deleted.`); }
           render(); renderQueue();
-          if (queue.every(j => j.done)) toast(job.up ? `Sent to ${name}` : 'Received from ' + name);
+          if (queue.every(j => j.done) && !queue.some(j => j.failed)) toast(job.up ? `Sent to ${name}` : 'Received from ' + name);
         };
         requestAnimationFrame(step);
       });
@@ -2150,7 +2189,7 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
   function hideApp() { Object.keys(wins).forEach(k => !wins[k].hidden && hideWin(k, 'minimizing')); }
   function quitApp(force) {
     const go = () => {
-      tabs = []; active = null; setChat(false); clearInterval(cmTimer);
+      resetRemoteExtras(); tabs = []; active = null; setChat(false); clearInterval(cmTimer);
       Object.keys(wins).forEach(k => k.startsWith('tool-') ? closeTool(k) : !wins[k].hidden && hideWin(k, 'closing'));
       setRunning(false);
     };
@@ -2314,3 +2353,5 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
   addEventListener('resize', () => { if (!Object.values(wins).some(w => w.classList.contains('max'))) place(); });
 })();
 </script>
+</body>
+</html>

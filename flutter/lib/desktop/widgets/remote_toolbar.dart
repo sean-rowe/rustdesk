@@ -330,6 +330,8 @@ class _ToolbarTheme {
   static const Color hoverBlueColor = NimbusColors.accentStrong;
   static Color inactiveColor = NimbusColors.hoverControl;
   static Color hoverInactiveColor = const Color(0x3DFFFFFF);
+  // Unselected monitor numbers sit on a white tile, so they need dark ink.
+  static const Color monitorNumberColor = Color(0xFF424242);
 
   static const Color redColor = NimbusColors.danger;
   static const Color hoverRedColor = NimbusColors.dangerDeep;
@@ -1252,7 +1254,7 @@ class _MonitorMenu extends StatelessWidget {
               style: TextStyle(
                 color: display.value == i
                     ? activeTextColor
-                    : _ToolbarTheme.inactiveColor,
+                    : _ToolbarTheme.monitorNumberColor,
                 fontSize: fontSize,
                 fontWeight: FontWeight.bold,
               ),

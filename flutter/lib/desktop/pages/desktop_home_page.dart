@@ -143,7 +143,11 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                   controller: _leftPaneScrollController,
                   child: Padding(
                     key: _childKey,
-                    padding: const EdgeInsets.all(NimbusSpace.s6),
+                    // Incoming-only windows are sized to this content, and
+                    // the service status row needs the full width.
+                    padding: isIncomingOnly
+                        ? EdgeInsets.zero
+                        : const EdgeInsets.all(NimbusSpace.s6),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: children,
