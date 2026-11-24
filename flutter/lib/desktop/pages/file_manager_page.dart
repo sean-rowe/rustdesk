@@ -5,7 +5,6 @@ import 'dart:math';
 import 'package:extended_text/extended_text.dart';
 import 'package:flutter_hbb/common/widgets/dialog.dart';
 import 'package:flutter_hbb/desktop/widgets/dragable_divider.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_breadcrumb/flutter_breadcrumb.dart';
 import 'package:flutter_hbb/desktop/widgets/list_search_action_listener.dart';
 import 'package:flutter_hbb/desktop/widgets/menu_button.dart';
+import 'package:flutter_hbb/desktop/widgets/nimbus/nimbus_widgets.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/file_model.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -49,6 +50,159 @@ enum MouseFocusScope {
 
   /// Mouse is not in local field, remote neither.
   none
+}
+
+/// A pane's footer: its item count, or the selection and the size of the
+/// selected files.
+String fileListFooterText(int shown, List<Entry> selected) {
+  if (selected.isEmpty) return '$shown ${translate('items')}';
+  final size =
+      selected.where((e) => e.isFile).fold<int>(0, (total, e) => total + e.size);
+  return '${selected.length} ${translate('Selected')} · '
+      '${readableFileSize(size.toDouble())}';
+}
+
+/// One job in the Transfers panel: direction icon, name and status, a
+/// progress bar that turns green when the job finishes, the percentage and
+/// the size, then Resume (while paused) and Delete.
+class TransferJobRow extends StatelessWidget {
+  final JobProgress job;
+  final bool divider;
+  final VoidCallback onResume;
+  final VoidCallback onCancel;
+
+  const TransferJobRow({
+    Key? key,
+    required this.job,
+    required this.divider,
+    required this.onResume,
+    required this.onCancel,
+  }) : super(key: key);
+
+  static const _caption = TextStyle(
+      fontSize: NimbusType.caption,
+      color: NimbusColors.textTertiary,
+      fontFeatures: [FontFeature.tabularFigures()]);
+
+  Widget _icon() {
+    const color = NimbusColors.accent;
+    switch (job.type) {
+      case JobType.deleteDir:
+      case JobType.deleteFile:
+        return const Icon(Icons.delete_outline, size: 18, color: color);
+      default:
+        return Transform.rotate(
+          angle: isWeb
+              ? job.isRemoteToLocal
+                  ? pi / 2
+                  : pi / 2 * 3
+              : job.isRemoteToLocal
+                  ? pi
+                  : 0,
+          child: const Icon(Icons.arrow_forward, size: 18, color: color),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Cancelled jobs also end as done, so success needs a clean error too.
+    final done = job.state == JobState.done && job.err != 'cancel';
+    final showBar = job.type == JobType.transfer &&
+        (done ||
+            job.state == JobState.inProgress ||
+            job.state == JobState.paused);
+    var status = job.getStatus();
+    if (job.recvJobRes && job.state == JobState.inProgress) {
+      status = '$status · ${readableFileSize(job.speed)}/s';
+    }
+    return Container(
+      decoration: divider
+          ? const BoxDecoration(
+              border: Border(top: BorderSide(color: NimbusColors.divider)))
+          : null,
+      padding: const EdgeInsets.symmetric(
+          horizontal: NimbusSpace.s4, vertical: NimbusSpace.s3),
+      child: Row(children: [
+        _icon(),
+        const SizedBox(width: NimbusSpace.s4),
+        Expanded(
+          flex: 3,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Tooltip(
+                waitDuration: Duration(milliseconds: 500),
+                message: job.jobName,
+                child: ExtendedText(
+                  job.jobName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: NimbusType.body,
+                      color: NimbusColors.textPrimary),
+                  overflowWidget: TextOverflowWidget(
+                      child: Text("..."),
+                      position: TextOverflowPosition.start),
+                ),
+              ),
+              Tooltip(
+                waitDuration: Duration(milliseconds: 500),
+                message: status,
+                child: Text(status,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _caption),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: NimbusSpace.s6),
+        Expanded(
+          flex: 2,
+          child: showBar
+              ? ClipRRect(
+                  borderRadius: NimbusRadii.all(NimbusRadii.pill),
+                  child: LinearProgressIndicator(
+                    value: done ? 1 : job.percent,
+                    minHeight: 6,
+                    color: done ? NimbusColors.success : NimbusColors.accent,
+                    backgroundColor: NimbusColors.hoverControl,
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+        SizedBox(
+          width: 48,
+          child: Text(showBar ? (done ? '100%' : job.percentText) : '',
+              textAlign: TextAlign.right,
+              style: _caption.copyWith(color: NimbusColors.textSecondary)),
+        ),
+        SizedBox(
+          width: 76,
+          child: Text(
+              job.totalSize > 0
+                  ? readableFileSize(job.totalSize.toDouble())
+                  : '',
+              textAlign: TextAlign.right,
+              style: _caption),
+        ),
+        const SizedBox(width: NimbusSpace.s4),
+        if (job.state == JobState.paused)
+          NimbusIconButton(
+            icon: Icons.play_arrow_rounded,
+            tooltip: translate("Resume"),
+            onTap: onResume,
+          ),
+        NimbusIconButton(
+          icon: Icons.close,
+          tooltip: translate("Delete"),
+          onTap: onCancel,
+        ),
+      ]),
+    );
+  }
 }
 
 class FileManagerPage extends StatefulWidget {
@@ -166,19 +320,23 @@ class _FileManagerPageState extends State<FileManagerPage>
     return Overlay(key: _overlayKeyState.key, initialEntries: [
       OverlayEntry(builder: (_) {
         return willPopScope(Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: Row(
+          backgroundColor: Colors.transparent,
+          body: Column(
             children: [
-              if (!isWeb)
-                Flexible(
-                    flex: 3,
-                    child: dropArea(FileManagerView(
-                        model.localController, _ffi, _mouseFocusScope))),
-              Flexible(
-                  flex: 3,
-                  child: dropArea(FileManagerView(
-                      model.remoteController, _ffi, _mouseFocusScope))),
-              Flexible(flex: 2, child: statusList())
+              Expanded(
+                child: Row(
+                  children: [
+                    if (!isWeb)
+                      Expanded(
+                          child: dropArea(FileManagerView(
+                              model.localController, _ffi, _mouseFocusScope))),
+                    Expanded(
+                        child: dropArea(FileManagerView(
+                            model.remoteController, _ffi, _mouseFocusScope))),
+                  ],
+                ),
+              ),
+              SizedBox(height: 200, child: statusList()),
             ],
           ),
         ));
@@ -211,194 +369,63 @@ class _FileManagerPageState extends State<FileManagerPage>
     );
   }
 
-  /// transfer status list
-  /// watch transfer status
+  /// The Transfers panel below both panes: one row per job, with a
+  /// progress bar that turns green when the job finishes.
   Widget statusList() {
-    Widget getIcon(JobProgress job) {
-      final color = Theme.of(context).tabBarTheme.labelColor;
-      switch (job.type) {
-        case JobType.deleteDir:
-        case JobType.deleteFile:
-          return Icon(Icons.delete_outline, color: color);
-        default:
-          return Transform.rotate(
-            angle: isWeb
-                ? job.isRemoteToLocal
-                    ? pi / 2
-                    : pi / 2 * 3
-                : job.isRemoteToLocal
-                    ? pi
-                    : 0,
-            child: Icon(Icons.arrow_forward_ios, color: color),
-          );
-      }
-    }
-
-    statusListView(List<JobProgress> jobs) => ListView.builder(
-          controller: ScrollController(),
-          itemBuilder: (BuildContext context, int index) {
-            final item = jobs[index];
-            final status = item.getStatus();
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: generateCard(
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        getIcon(item)
-                            .marginSymmetric(horizontal: 10, vertical: 12),
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Tooltip(
-                                waitDuration: Duration(milliseconds: 500),
-                                message: item.jobName,
-                                child: ExtendedText(
-                                  item.jobName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  overflowWidget: TextOverflowWidget(
-                                      child: Text("..."),
-                                      position: TextOverflowPosition.start),
-                                ),
-                              ),
-                              Tooltip(
-                                waitDuration: Duration(milliseconds: 500),
-                                message: status,
-                                child: Text(status,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: MyTheme.darkGray,
-                                    )).marginOnly(top: 6),
-                              ),
-                              Offstage(
-                                offstage: item.type != JobType.transfer ||
-                                    item.state != JobState.inProgress,
-                                child: LinearPercentIndicator(
-                                  animateFromLastPercent: true,
-                                  center: SizedBox.expand(
-                                    child: ShaderMask(
-                                      blendMode: BlendMode.srcATop,
-                                      shaderCallback: (bounds) =>
-                                          LinearGradient(
-                                        colors: [
-                                          Colors.white,
-                                          Colors.transparent,
-                                        ],
-                                        stops: [item.percent, item.percent],
-                                      ).createShader(bounds),
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        child: Text.rich(
-                                          TextSpan(
-                                            text: item.percentText,
-                                            children: [
-                                              if (item.recvJobRes)
-                                                TextSpan(
-                                                  text:
-                                                      ' ${readableFileSize(item.speed)}/s',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w300,
-                                                    color: MyTheme.darkGray,
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  barRadius: Radius.circular(15),
-                                  percent: item.percent,
-                                  progressColor: MyTheme.accent,
-                                  backgroundColor: Theme.of(context).hoverColor,
-                                  lineHeight: kDesktopFileTransferRowHeight,
-                                ).paddingSymmetric(vertical: 8),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Offstage(
-                              offstage: item.state != JobState.paused,
-                              child: MenuButton(
-                                tooltip: translate("Resume"),
-                                onPressed: () {
-                                  jobController.resumeJob(item.id);
-                                },
-                                child: SvgPicture.asset(
-                                  "assets/refresh.svg",
-                                  colorFilter: svgColor(Colors.white),
-                                ),
-                                color: MyTheme.accent,
-                                hoverColor: MyTheme.accent80,
-                              ),
-                            ),
-                            MenuButton(
-                              tooltip: translate("Delete"),
-                              child: SvgPicture.asset(
-                                "assets/close.svg",
-                                colorFilter: svgColor(Colors.white),
-                              ),
-                              onPressed: () {
-                                jobController.jobTable.removeAt(index);
-                                jobController.cancelJob(item.id);
-                              },
-                              color: MyTheme.accent,
-                              hoverColor: MyTheme.accent80,
-                            ),
-                          ],
-                        ).marginAll(12),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-          itemCount: jobController.jobTable.length,
-        );
-
-    return PreferredSize(
-      preferredSize: const Size(200, double.infinity),
-      child: Container(
-          margin: const EdgeInsets.only(top: 16.0, bottom: 16.0, right: 16.0),
-          padding: const EdgeInsets.all(8.0),
-          child: Obx(
-            () => jobController.jobTable.isEmpty
-                ? generateCard(
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SvgPicture.asset(
-                            "assets/transfer.svg",
-                            colorFilter: svgColor(
-                                Theme.of(context).tabBarTheme.labelColor),
-                            height: 40,
-                          ).paddingOnly(bottom: 10),
-                          Text(
-                            translate("No transfers in progress"),
-                            textAlign: TextAlign.center,
-                            textScaler: TextScaler.linear(1.20),
-                            style: TextStyle(
-                                color:
-                                    Theme.of(context).tabBarTheme.labelColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : statusListView(jobController.jobTable),
-          )),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(
+          NimbusSpace.s6, 0, NimbusSpace.s6, NimbusSpace.s6),
+      padding: const EdgeInsets.all(NimbusSpace.s4),
+      decoration: BoxDecoration(
+        color: NimbusColors.surfaceRaise,
+        borderRadius: NimbusRadii.all(NimbusRadii.lg),
+        border: Border.all(color: NimbusColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            Text(translate('Transfers'),
+                style: const TextStyle(
+                    fontSize: NimbusType.headline,
+                    fontWeight: NimbusType.semibold,
+                    color: NimbusColors.textPrimary)),
+            const Spacer(),
+            Obx(() => TextButton(
+                  onPressed: jobController.jobTable
+                          .any((job) => job.state == JobState.done)
+                      ? () => jobController.jobTable
+                          .removeWhere((job) => job.state == JobState.done)
+                      : null,
+                  child: Text(translate('Clear finished')),
+                )),
+          ]).paddingSymmetric(horizontal: NimbusSpace.s4),
+          Expanded(
+            child: Obx(() => jobController.jobTable.isEmpty
+                ? Center(
+                    child: Text(translate("No transfers in progress"),
+                        style: const TextStyle(
+                            fontSize: NimbusType.footnote,
+                            color: NimbusColors.textTertiary)))
+                : ListView.builder(
+                    controller: ScrollController(),
+                    itemCount: jobController.jobTable.length,
+                    itemBuilder: (context, index) {
+                      final job = jobController.jobTable[index];
+                      return TransferJobRow(
+                        job: job,
+                        divider: index > 0,
+                        onResume: () => jobController.resumeJob(job.id),
+                        onCancel: () {
+                          jobController.jobTable.removeAt(index);
+                          jobController.cancelJob(job.id);
+                        },
+                      );
+                    },
+                  )),
+          ),
+        ],
+      ),
     );
   }
 
@@ -480,8 +507,14 @@ class _FileManagerViewState extends State<FileManagerView> {
   Widget build(BuildContext context) {
     _handleColumnPorportions();
     return Container(
-      margin: const EdgeInsets.all(16.0),
-      padding: const EdgeInsets.all(8.0),
+      margin: const EdgeInsets.fromLTRB(
+          NimbusSpace.s6, NimbusSpace.s6, NimbusSpace.s6, NimbusSpace.s4),
+      padding: const EdgeInsets.all(NimbusSpace.s6),
+      decoration: BoxDecoration(
+        color: NimbusColors.surfaceRaise,
+        borderRadius: NimbusRadii.all(NimbusRadii.lg),
+        border: Border.all(color: NimbusColors.divider),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -510,9 +543,27 @@ class _FileManagerViewState extends State<FileManagerView> {
               ],
             ),
           ),
+          _buildFooter(),
         ],
       ),
     );
+  }
+
+  /// The pane's item count, or the selection and the size of its files.
+  Widget _buildFooter() {
+    return Obx(() {
+      final entries = controller.directory.value.entries;
+      final shown = _searchText.isNotEmpty
+          ? entries.where((e) => e.name.contains(_searchText.value)).length
+          : entries.length;
+      final selected = selectedItems.items;
+      return Text(fileListFooterText(shown, selected),
+              style: const TextStyle(
+                  fontSize: NimbusType.caption,
+                  color: NimbusColors.textTertiary,
+                  fontFeatures: [FontFeature.tabularFigures()]))
+          .marginOnly(top: NimbusSpace.s4);
+    });
   }
 
   void _handleColumnPorportions() {
@@ -561,13 +612,13 @@ class _FileManagerViewState extends State<FileManagerView> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
-                          width: 50,
-                          height: 50,
+                          width: 28,
+                          height: 28,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                            color: MyTheme.accent,
+                            borderRadius: NimbusRadii.all(NimbusRadii.sm),
+                            color: NimbusColors.accent,
                           ),
-                          padding: EdgeInsets.all(8.0),
+                          padding: EdgeInsets.all(NimbusSpace.s3),
                           child: FutureBuilder<String>(
                               future: bind.sessionGetPlatform(
                                   sessionId: _ffi.sessionId,
@@ -584,14 +635,19 @@ class _FileManagerViewState extends State<FileManagerView> {
                                   );
                                 }
                               })),
-                      Text(isLocal
-                              ? translate("Local Computer")
-                              : translate("Remote Computer"))
-                          .marginOnly(left: 8.0)
+                      Text(
+                              isLocal
+                                  ? translate("Local Computer")
+                                  : translate("Remote Computer"),
+                              style: const TextStyle(
+                                  fontSize: NimbusType.headline,
+                                  fontWeight: NimbusType.semibold,
+                                  color: NimbusColors.textPrimary))
+                          .marginOnly(left: NimbusSpace.s4)
                     ],
                   ),
-                  preferredSize: Size(double.infinity, 70))
-              .paddingOnly(bottom: 15),
+                  preferredSize: Size(double.infinity, 40))
+              .paddingOnly(bottom: NimbusSpace.s6),
           // buttons
           Row(
             children: [
@@ -1195,11 +1251,9 @@ class _FileManagerViewState extends State<FileManagerView> {
             child: Obx(() => Container(
                 decoration: BoxDecoration(
                   color: selectedItems.items.contains(entry)
-                      ? MyTheme.button
-                      : Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(5.0),
-                  ),
+                      ? NimbusColors.accentFill
+                      : Colors.transparent,
+                  borderRadius: NimbusRadii.all(NimbusRadii.sm),
                   border: rightClickEntry.value == entry
                       ? Border.all(
                           color: MyTheme.button,

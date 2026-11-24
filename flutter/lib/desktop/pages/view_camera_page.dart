@@ -16,8 +16,10 @@ import '../../common/widgets/toolbar.dart';
 import '../../models/model.dart';
 import '../../models/platform_model.dart';
 import '../../common/shared_state.dart';
+import '../../common/formatter/id_formatter.dart';
 import '../../utils/image.dart';
 import '../widgets/remote_toolbar.dart';
+import '../widgets/nimbus/camera_overlays.dart';
 import '../widgets/kb_layout_type_chooser.dart';
 import '../widgets/tabbar_widget.dart';
 
@@ -124,8 +126,9 @@ class _ViewCameraPageState extends State<ViewCameraPage>
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-      _ffi.dialogManager
-          .showLoading(translate('Connecting...'), onCancel: closeConnection);
+      _ffi.dialogManager.showLoading(
+          translate('Opening the camera on {${formatID(widget.id)}}...'),
+          onCancel: closeConnection);
     });
     WakelockManager.enable(_uniqueKey);
 
@@ -478,6 +481,26 @@ class _ViewCameraPageState extends State<ViewCameraPage>
             QualityMonitor(_ffi.qualityMonitorModel), null, null),
       ),
     );
+    // Once the feed shows: "Live · Camera N" top left, the time bottom left.
+    bool feedShown() =>
+        _ffi.ffiModel.pi.isSet.isTrue &&
+        _ffi.ffiModel.waitForFirstImage.isFalse;
+    paints.add(Positioned(
+      top: 10,
+      left: 10,
+      child: IgnorePointer(
+          child: Obx(() => feedShown()
+              ? CameraLivePill(
+                  display: CurrentDisplayState.find(widget.id).value)
+              : const SizedBox.shrink())),
+    ));
+    paints.add(Positioned(
+      bottom: 10,
+      left: 10,
+      child: IgnorePointer(
+          child: Obx(() =>
+              feedShown() ? const CameraClock() : const SizedBox.shrink())),
+    ));
     return Stack(
       children: paints,
     );

@@ -3,6 +3,7 @@ import 'dart:core';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderListBody;
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:get/get.dart';
 
 import '../../common.dart';
@@ -893,14 +894,15 @@ class _PopupSubMenuItemState<T> extends State<_PopupSubMenuItem<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final highlight = Theme.of(context).colorScheme.onSurface.withOpacity(0.08);
+    const highlight = NimbusColors.accentFill;
     final trigger = Obx(() => MouseRegion(
           onEnter: (_) => _hoverTrigger(true),
           onExit: (_) => _hoverTrigger(false),
           child: TextButton(
             onPressed: widget.enabled.value ? _openSubmenu : null,
             style: ButtonStyle(
-              shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
+              shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+                  borderRadius: NimbusRadii.all(NimbusRadii.xs))),
               backgroundColor: MaterialStateProperty.resolveWith((states) =>
                   !states.contains(MaterialState.disabled) &&
                           (_submenuOpen ||

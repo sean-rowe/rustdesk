@@ -3,6 +3,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
+import 'package:flutter_hbb/desktop/widgets/nimbus/recording_pill.dart';
 import 'package:flutter_hbb/common/widgets/audio_input.dart';
 import 'package:flutter_hbb/common/widgets/dialog.dart';
 import 'package:flutter_hbb/common/widgets/keyboard_shortcuts/display.dart';
@@ -162,7 +164,7 @@ Alignment _alignmentForEdge(_ToolbarEdge edge, double fraction) {
 // The drag handle hangs off the side of the toolbar facing away from the
 // docked edge, so the icons themselves sit flush against that edge.
 BorderRadius _collapseHandleBorderRadius(_ToolbarEdge edge) {
-  const r = Radius.circular(5);
+  const r = Radius.circular(NimbusRadii.sm);
   switch (edge) {
     case _ToolbarEdge.top:
       return const BorderRadius.vertical(bottom: r);
@@ -325,13 +327,15 @@ class ToolbarState {
 }
 
 class _ToolbarTheme {
-  static const Color blueColor = MyTheme.button;
-  static const Color hoverBlueColor = MyTheme.accent;
-  static Color inactiveColor = Colors.grey[800]!;
-  static Color hoverInactiveColor = Colors.grey[850]!;
+  static const Color blueColor = NimbusColors.accent;
+  static const Color hoverBlueColor = NimbusColors.accentStrong;
+  static Color inactiveColor = NimbusColors.hoverControl;
+  static Color hoverInactiveColor = const Color(0x3DFFFFFF);
+  // Unselected monitor numbers sit on a white tile, so they need dark ink.
+  static const Color monitorNumberColor = Color(0xFF424242);
 
-  static const Color redColor = Colors.redAccent;
-  static const Color hoverRedColor = Colors.red;
+  static const Color redColor = NimbusColors.danger;
+  static const Color hoverRedColor = NimbusColors.dangerDeep;
   // kMinInteractiveDimension
   static const double height = 20.0;
   static const double dividerHeight = 12.0;
@@ -339,19 +343,18 @@ class _ToolbarTheme {
   static const double buttonSize = 32;
   static const double buttonHMargin = 2;
   static const double buttonVMargin = 6;
-  static const double iconRadius = 8;
+  static const double iconRadius = NimbusRadii.md;
   static const double elevation = 3;
 
   static double dividerSpaceToAction = isWindows ? 8 : 14;
 
-  static double menuBorderRadius = isWindows ? 5.0 : 7.0;
+  static double menuBorderRadius = NimbusRadii.lg;
   static EdgeInsets menuPadding = isWindows
       ? EdgeInsets.fromLTRB(4, 12, 4, 12)
       : EdgeInsets.fromLTRB(6, 14, 6, 14);
-  static const double menuButtonBorderRadius = 3.0;
+  static const double menuButtonBorderRadius = NimbusRadii.sm;
 
-  static Color borderColor(BuildContext context) =>
-      MyTheme.color(context).border3 ?? MyTheme.border;
+  static Color borderColor(BuildContext context) => NimbusColors.borderWindow;
 
   static Color? dividerColor(BuildContext context) =>
       MyTheme.color(context).divider;
@@ -842,6 +845,9 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
       state: widget.state,
       setFullscreen: _setFullscreen,
     ));
+    if (widget.ffi.connType == ConnType.viewCamera) {
+      toolbarItems.add(_CameraSnapshotMenu(id: widget.id, ffi: widget.ffi));
+    }
     // Do not show keyboard for camera connection type.
     if (widget.ffi.connType == ConnType.defaultConn) {
       toolbarItems.add(_KeyboardMenu(id: widget.id, ffi: widget.ffi));
@@ -852,7 +858,7 @@ class _RemoteToolbarState extends State<RemoteToolbar> {
     }
     if (!isWeb) toolbarItems.add(_RecordMenu());
     toolbarItems.add(_CloseMenu(id: widget.id, ffi: widget.ffi));
-    final toolbarBorderRadius = BorderRadius.all(Radius.circular(4.0));
+    final toolbarBorderRadius = NimbusRadii.all(NimbusRadii.lg);
     // innerAxis: how the toolbar icons themselves flow.
     // outerAxis: how the toolbar block and the handle stack against each other
     // (perpendicular to the dock edge, so the handle hangs off the interior face).
@@ -1141,7 +1147,7 @@ class _MonitorMenu extends StatelessWidget {
         style: TextStyle(
           color: i == curDisplay
               ? _ToolbarTheme.blueColor
-              : _ToolbarTheme.inactiveColor,
+              : _ToolbarTheme.monitorNumberColor,
           fontSize: 12,
           fontWeight: FontWeight.bold,
         ),
@@ -1252,7 +1258,7 @@ class _MonitorMenu extends StatelessWidget {
               style: TextStyle(
                 color: display.value == i
                     ? activeTextColor
-                    : _ToolbarTheme.inactiveColor,
+                    : _ToolbarTheme.monitorNumberColor,
                 fontSize: fontSize,
                 fontWeight: FontWeight.bold,
               ),
@@ -2983,18 +2989,53 @@ class _RecordMenu extends StatelessWidget {
     final visible = !hideRecordingButton &&
         (recordingModel.start || ffi.permissions['recording'] != false);
     if (!visible) return Offstage();
+    button(String tooltip) => _IconMenuButton(
+          assetName: 'assets/rec.svg',
+          tooltip: tooltip,
+          onPressed: () => recordingModel.toggle(),
+          color: recordingModel.start
+              ? _ToolbarTheme.redColor
+              : _ToolbarTheme.blueColor,
+          hoverColor: recordingModel.start
+              ? _ToolbarTheme.hoverRedColor
+              : _ToolbarTheme.hoverBlueColor,
+        );
+    if (!recordingModel.start) return button('Start session recording');
+    // While recording, the tooltip also shows the elapsed time.
+    return RecordingTicker(
+      model: recordingModel,
+      builder: (context, elapsed) => button(
+          '${translate('Stop session recording')} · '
+          '${formatRecordingElapsed(elapsed)}'),
+    );
+  }
+}
+
+/// A snapshot button for camera connections. It runs the Controls menu's
+/// own "Take screenshot" entry, so the cooldown and the merged-display
+/// message stay the same, and hides when the peer can't take screenshots.
+class _CameraSnapshotMenu extends StatelessWidget {
+  final String id;
+  final FFI ffi;
+  const _CameraSnapshotMenu({Key? key, required this.id, required this.ffi})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final supported = bind.sessionGetCommonSync(
+        sessionId: ffi.sessionId, key: 'is_screenshot_supported', param: '');
+    if (supported != 'true') return Offstage();
     return _IconMenuButton(
-      assetName: 'assets/rec.svg',
-      tooltip: recordingModel.start
-          ? 'Stop session recording'
-          : 'Start session recording',
-      onPressed: () => recordingModel.toggle(),
-      color: recordingModel.start
-          ? _ToolbarTheme.redColor
-          : _ToolbarTheme.blueColor,
-      hoverColor: recordingModel.start
-          ? _ToolbarTheme.hoverRedColor
-          : _ToolbarTheme.hoverBlueColor,
+      icon: const Icon(Icons.photo_camera_outlined,
+          size: 18, color: Colors.white),
+      tooltip: 'Take screenshot',
+      onPressed: () {
+        final entries = toolbarControls(context, id, ffi)
+            .where((e) => e.actionId == kShortcutActionScreenshot);
+        if (entries.isNotEmpty) entries.first.onPressed?.call();
+      },
+      color: _ToolbarTheme.blueColor,
+      hoverColor: _ToolbarTheme.hoverBlueColor,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/desktop/widgets/nimbus/nimbus_terminal.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/model.dart';
 import 'package:flutter_hbb/models/terminal_model.dart';
@@ -212,6 +213,8 @@ class _TerminalPageState extends State<TerminalPage>
             focusNode: _terminalFocusNode,
             // Note: autofocus is not used here because focus is managed manually
             // via _onTabStateChanged() to handle tab switching properly.
+            textStyle: nimbusTerminalStyle,
+            theme: nimbusTerminalTheme,
             backgroundOpacity: 1.0,
             padding: _calculatePadding(heightPx),
             onSecondaryTapDown: (details, offset) async {

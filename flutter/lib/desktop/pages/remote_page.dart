@@ -21,6 +21,7 @@ import '../../models/shortcut_model.dart';
 import '../../common/shared_state.dart';
 import '../../utils/image.dart';
 import '../widgets/remote_toolbar.dart';
+import '../widgets/nimbus/recording_pill.dart';
 import '../widgets/kb_layout_type_chooser.dart';
 import '../widgets/tabbar_widget.dart';
 import 'macos_full_screen_focus_recovery.dart';
@@ -1012,6 +1013,19 @@ class _RemotePageState extends State<RemotePage>
             QualityMonitor(_ffi.qualityMonitorModel), null, null),
       ),
     );
+    // Not wrapped in the raw input region: a click on Stop must not reach
+    // the remote device.
+    paints.add(Positioned(
+      top: 10,
+      left: 10,
+      child: RecordingPill(model: _ffi.recordingModel),
+    ));
+    paints.add(Positioned(
+      left: 0,
+      right: 0,
+      bottom: 14,
+      child: IgnorePointer(child: Center(child: InputBlockedPill(id: widget.id))),
+    ));
     return Stack(
       children: paints,
     );

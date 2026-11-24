@@ -1,6 +1,8 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
+import 'package:flutter_hbb/common/hbbs/hbbs.dart' show UserPayload;
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/widgets/dialog.dart';
 import 'package:flutter_hbb/consts.dart';
@@ -26,6 +28,19 @@ final peerCardUiType = PeerUiType.grid.obs;
 
 bool? hideUsernameOnCard;
 
+/// The owner line on an Accessible devices card: "Yours" for your own
+/// device, "Shared by NAME" for someone else's, or null when the peer has
+/// no owner. NAME is the owner's display name when the group lists it.
+String? groupPeerOwnerLine(
+    Peer peer, String myUserName, Iterable<UserPayload> users) {
+  final owner = peer.loginName;
+  if (owner.isEmpty) return null;
+  if (owner == myUserName) return translate('Yours');
+  final matches = users.where((u) => u.name == owner);
+  final name = matches.isEmpty ? owner : matches.first.displayNameOrName;
+  return translate('Shared by {$name}');
+}
+
 class _PeerCard extends StatefulWidget {
   final Peer peer;
   final PeerTabIndex tab;
@@ -48,8 +63,8 @@ class _PeerCard extends StatefulWidget {
 class _PeerCardState extends State<_PeerCard>
     with AutomaticKeepAliveClientMixin {
   var _menuPos = RelativeRect.fill;
-  final double _cardRadius = 16;
-  final double _tileRadius = 5;
+  final double _cardRadius = NimbusRadii.lg;
+  final double _tileRadius = NimbusRadii.sm;
   final double _borderWidth = 2;
 
   @override
@@ -288,6 +303,10 @@ class _PeerCardState extends State<_PeerCard>
     final name = hideUsernameOnCard == true
         ? peer.hostname
         : '${peer.username}${peer.username.isNotEmpty && peer.hostname.isNotEmpty ? '@' : ''}${peer.hostname}';
+    final owner = widget.tab == PeerTabIndex.group
+        ? groupPeerOwnerLine(
+            peer, gFFI.userModel.userName.value, gFFI.groupModel.users)
+        : null;
     final child = Card(
       color: Colors.transparent,
       elevation: 0,
@@ -306,7 +325,10 @@ class _PeerCardState extends State<_PeerCard>
               children: [
                 Expanded(
                   child: Container(
-                    color: str2color('${peer.id}${peer.platform}', 0x7f),
+                    decoration: BoxDecoration(
+                      gradient: nimbusPeerGradient(
+                          str2color('${peer.id}${peer.platform}')),
+                    ),
                     child: Row(
                       children: [
                         Expanded(
@@ -315,8 +337,10 @@ class _PeerCardState extends State<_PeerCard>
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(6),
-                                child:
-                                    getPlatformImage(peer.platform, size: 60),
+                                // Smaller with an owner line, so the card
+                                // keeps its height.
+                                child: getPlatformImage(peer.platform,
+                                    size: owner == null ? 60 : 48),
                               ),
                               Row(
                                 children: [
@@ -327,8 +351,9 @@ class _PeerCardState extends State<_PeerCard>
                                       child: Text(
                                         name,
                                         style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 12),
+                                            color: NimbusColors.textOnGlass,
+                                            fontSize: NimbusType.footnote,
+                                            fontWeight: NimbusType.semibold),
                                         textAlign: TextAlign.center,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -336,6 +361,15 @@ class _PeerCardState extends State<_PeerCard>
                                   ),
                                 ],
                               ),
+                              if (owner != null)
+                                Text(
+                                  owner,
+                                  style: const TextStyle(
+                                      color: NimbusColors.textSecondary,
+                                      fontSize: NimbusType.micro),
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               if (_showNote(peer))
                                 Row(
                                   children: [
@@ -362,7 +396,7 @@ class _PeerCardState extends State<_PeerCard>
                   ),
                 ),
                 Container(
-                  color: Theme.of(context).colorScheme.background,
+                  color: NimbusColors.raiseOpaque,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1606,4 +1640,15 @@ void connectInPeerTab(BuildContext context, Peer peer, PeerTabIndex tab,
       isViewCamera: isViewCamera,
       isTcpTunneling: isTcpTunneling,
       isRDP: isRDP);
+}
+
+/// A Nimbus app-icon style gradient for a peer: its own hue at 155deg,
+/// deepened toward the accent so every peer sits in the Nimbus palette.
+Gradient nimbusPeerGradient(Color hue) {
+  final base = Color.lerp(hue, NimbusColors.accentStrong, 0.35)!;
+  return LinearGradient(
+    begin: const Alignment(-0.42, -1),
+    end: const Alignment(0.42, 1),
+    colors: [base, Color.lerp(base, NimbusColors.desktopBase, 0.45)!],
+  );
 }

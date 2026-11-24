@@ -132,7 +132,7 @@ class _ConnectionTabPageState extends State<ConnectionTabPage> {
   @override
   Widget build(BuildContext context) {
     final child = Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Colors.transparent,
       body: DesktopTab(
         controller: tabController,
         onWindowCloseButton: handleWindowCloseButton,

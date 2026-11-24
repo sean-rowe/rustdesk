@@ -1,7 +1,8 @@
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:debounce_throttle/debounce_throttle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/common/shared_state.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
@@ -565,22 +566,26 @@ class QualityMonitor extends StatelessWidget {
   Widget _row(String info, String? value, {Color? rightColor}) {
     return Row(
       children: [
+        Text(info,
+            style: const TextStyle(
+                fontSize: 12, color: NimbusColors.textTertiary)),
+        const SizedBox(width: 14),
         Expanded(
-            flex: 8,
-            child: AutoSizeText(info,
-                style: TextStyle(color: Color.fromARGB(255, 210, 210, 210)),
+            child: Text(value ?? '',
                 textAlign: TextAlign.right,
-                maxLines: 1)),
-        Spacer(flex: 1),
-        Expanded(
-            flex: 8,
-            child: AutoSizeText(value ?? '',
-                style: TextStyle(color: rightColor ?? Colors.white),
-                maxLines: 1)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: NimbusType.semibold,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    color: rightColor ?? NimbusColors.textPrimary))),
       ],
     );
   }
 
+  /// A small dark glass card: labels in tertiary text, values right-aligned
+  /// in tabular figures.
   @override
   Widget build(BuildContext context) => ChangeNotifierProvider.value(
       value: qualityMonitorModel,
@@ -588,10 +593,17 @@ class QualityMonitor extends StatelessWidget {
           builder: (context, qualityMonitorModel, child) => qualityMonitorModel
                   .show
               ? Container(
-                  constraints: BoxConstraints(maxWidth: 200),
-                  padding: const EdgeInsets.all(8),
-                  color: MyTheme.canvasColor.withAlpha(150),
+                  constraints:
+                      const BoxConstraints(minWidth: 170, maxWidth: 220),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: NimbusSpace.s5, vertical: NimbusSpace.s4),
+                  decoration: BoxDecoration(
+                    color: NimbusColors.surfaceTerminal,
+                    borderRadius: NimbusRadii.all(NimbusRadii.md),
+                    border: Border.all(color: NimbusColors.borderWindow),
+                  ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _row("Speed", qualityMonitorModel.data.speed ?? '-'),
@@ -600,7 +612,7 @@ class QualityMonitor extends StatelessWidget {
                       _row(
                           "Delay",
                           "${qualityMonitorModel.data.delay == null ? '-' : (qualityMonitorModel.data.fps ?? "").replaceAll(' ', '').replaceAll('0', '').isEmpty ? 0 : qualityMonitorModel.data.delay}ms",
-                          rightColor: Colors.green),
+                          rightColor: NimbusColors.success),
                       _row("Target Bitrate",
                           "${qualityMonitorModel.data.targetBitrate ?? '-'}kb"),
                       _row(
@@ -613,6 +625,43 @@ class QualityMonitor extends StatelessWidget {
                   ),
                 )
               : const SizedBox.shrink()));
+}
+
+/// The amber pill shown on the remote canvas while the remote keyboard and
+/// mouse are blocked for [id]. Shows nothing for a session without the state.
+class InputBlockedPill extends StatelessWidget {
+  final String id;
+  const InputBlockedPill({Key? key, required this.id}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Get.isRegistered<RxBool>(tag: BlockInputState.tag(id))) {
+      return const SizedBox.shrink();
+    }
+    return Obx(() => BlockInputState.find(id).value
+        ? Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: NimbusSpace.s6, vertical: NimbusSpace.s3),
+            decoration: BoxDecoration(
+              color: NimbusColors.warning.withOpacity(0.9),
+              borderRadius: NimbusRadii.all(NimbusRadii.pill),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.block,
+                    size: 14, color: NimbusColors.textOnLight),
+                const SizedBox(width: NimbusSpace.s4),
+                Text(translate('Remote keyboard and mouse are blocked'),
+                    style: const TextStyle(
+                        fontSize: NimbusType.footnote,
+                        fontWeight: NimbusType.semibold,
+                        color: NimbusColors.textOnLight)),
+              ],
+            ),
+          )
+        : const SizedBox.shrink());
+  }
 }
 
 class BlockableOverlayState extends OverlayKeyState {

@@ -5,6 +5,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/shared_state.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/common/widgets/setting_widgets.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
@@ -90,9 +91,7 @@ void changeIdDialog() {
       final Iterable violations = rules.where((r) => !r.validate(newId));
       if (violations.isNotEmpty) {
         setState(() {
-          msg = (isDesktop || isWebDesktop)
-              ? '${translate('Prompt')}:  ${violations.map((r) => r.name).join(', ')}'
-              : violations.map((r) => r.name).join(', ');
+          msg = violations.map((r) => r.name).join(', ');
         });
         return;
       }
@@ -111,13 +110,13 @@ void changeIdDialog() {
       if (status.isEmpty) {
         // ok
         close();
+        await gFFI.serverModel.fetchID();
+        showToast(translate('Successful'));
         return;
       }
       setState(() {
         isInProgress = false;
-        msg = (isDesktop || isWebDesktop)
-            ? '${translate('Prompt')}: ${translate(status)}'
-            : translate(status);
+        msg = translate(status);
       });
     }
 
@@ -133,9 +132,12 @@ void changeIdDialog() {
           TextField(
             decoration: InputDecoration(
                 labelText: translate('Your new ID'),
+                // Errors show inline under the field, in the theme's danger color.
                 errorText: msg.isEmpty ? null : translate(msg),
+                errorMaxLines: 3,
                 suffixText: '${rxId.value.length}/16',
-                suffixStyle: const TextStyle(fontSize: 12, color: Colors.grey)),
+                suffixStyle: const TextStyle(
+                    fontSize: 12, color: NimbusColors.textTertiary)),
             inputFormatters: [
               LengthLimitingTextInputFormatter(16),
               // FilteringTextInputFormatter(RegExp(r"[a-zA-z][a-zA-z0-9\_]*"), allow: true)
@@ -152,26 +154,6 @@ void changeIdDialog() {
           const SizedBox(
             height: 8.0,
           ),
-          (isDesktop || isWebDesktop)
-              ? Obx(() => Wrap(
-                    runSpacing: 8,
-                    spacing: 4,
-                    children: rules.map((e) {
-                      var checked = e.validate(rxId.value);
-                      return Chip(
-                          label: Text(
-                            e.name,
-                            style: TextStyle(
-                                color: checked
-                                    ? const Color(0xFF0A9471)
-                                    : Color.fromARGB(255, 198, 86, 157)),
-                          ),
-                          backgroundColor: checked
-                              ? const Color(0xFFD0F7ED)
-                              : Color.fromARGB(255, 247, 205, 232));
-                    }).toList(),
-                  )).marginOnly(bottom: 8)
-              : SizedBox.shrink(),
           // NOT use Offstage to wrap LinearProgressIndicator
           if (isInProgress) const LinearProgressIndicator(),
         ],

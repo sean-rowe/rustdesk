@@ -3,6 +3,8 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_home_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
+import 'package:flutter_hbb/desktop/widgets/nimbus/nimbus_widgets.dart';
+import 'package:flutter_hbb/desktop/widgets/nimbus/nimbus_window.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
@@ -91,21 +93,34 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tabWidget = Container(
-        child: Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.background,
-            body: DesktopTab(
+    final tabWidget = Scaffold(
+      backgroundColor: Colors.transparent,
+      body: NimbusWindowFrame(
+        child: Column(children: [
+          if (!kUseCompatibleUiMode) _buildTitleBar(),
+          Expanded(
+            // Compatible UI mode has no title bar, so it keeps the tab bar
+            // and its Settings button as the way between Home and Settings.
+            child: DesktopTab(
               controller: tabController,
-              tail: Offstage(
-                offstage: bind.isIncomingOnly() || bind.isDisableSettings(),
-                child: ActionIcon(
-                  message: 'Settings',
-                  icon: IconFont.menu,
-                  onTap: DesktopTabPage.onAddSetting,
-                  isClose: false,
-                ),
-              ),
-            )));
+              showTabBar: kUseCompatibleUiMode,
+              tail: kUseCompatibleUiMode
+                  ? Offstage(
+                      offstage:
+                          bind.isIncomingOnly() || bind.isDisableSettings(),
+                      child: ActionIcon(
+                        message: 'Settings',
+                        icon: IconFont.menu,
+                        onTap: DesktopTabPage.onAddSetting,
+                        isClose: false,
+                      ),
+                    )
+                  : null,
+            ),
+          ),
+        ]),
+      ),
+    );
     return isMacOS || kUseCompatibleUiMode
         ? tabWidget
         : Obx(
@@ -115,5 +130,50 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
               child: tabWidget,
             ),
           );
+  }
+
+  Widget _buildTitleBar() {
+    final canOpenSettings = !bind.isIncomingOnly() && !bind.isDisableSettings();
+    return NimbusTitleBar(
+      isMainWindow: true,
+      canMaximize: !(bind.isIncomingOnly() && isInHomePage()),
+      controls: WindowActionPanel(
+        isMainWindow: true,
+        state: tabController.state,
+        tabController: tabController,
+        invisibleTabKeys: RxList.empty(),
+        showExtras: false,
+      ),
+      // Incoming-only mode has no Settings entry here, but Settings can still
+      // be opened from the ID board, so the switch appears while it is open
+      // to give a way back to Home.
+      center: Obx(() {
+        final selected = _selectedTabKey();
+        if (!canOpenSettings && selected != kTabLabelSettingPage) {
+          return const NimbusWindowTitle();
+        }
+        return NimbusSegmentedControl<String>(
+          segments: [
+            (kTabLabelHomePage, translate('Home')),
+            (kTabLabelSettingPage, translate('Settings')),
+          ],
+          value: selected,
+          onChanged: _selectTab,
+        );
+      }),
+    );
+  }
+
+  String _selectedTabKey() {
+    final state = tabController.state.value;
+    return state.tabs.isEmpty ? kTabLabelHomePage : state.selectedTabInfo.key;
+  }
+
+  void _selectTab(String key) {
+    if (key == kTabLabelSettingPage) {
+      DesktopTabPage.onAddSetting();
+    } else {
+      tabController.jumpToByKey(kTabLabelHomePage);
+    }
   }
 }

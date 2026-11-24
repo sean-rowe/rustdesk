@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/common/widgets/address_book.dart';
 import 'package:flutter_hbb/common/widgets/dialog.dart';
 import 'package:flutter_hbb/common/widgets/my_group.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/widgets/popup_menu.dart';
 import 'package:flutter_hbb/desktop/widgets/material_mod_popup_menu.dart'
     as mod_menu;
+import 'package:flutter_hbb/desktop/widgets/nimbus/nimbus_widgets.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/ab_model.dart';
 import 'package:flutter_hbb/models/peer_model.dart';
@@ -25,6 +27,74 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../common.dart';
 import '../../models/platform_model.dart';
+
+/// Switches the peer list from the desktop sidebar the way
+/// [_PeerTabPageState.handleTabSelection] does from the tab bar.
+void _switchPeerTab(int tabIndex) {
+  final model = gFFI.peerTabModel;
+  if (tabIndex != model.currentTab) {
+    model.setCurrentTabCachedPeers([]);
+    // The tab bar is hidden while selecting, so upstream never switches lists
+    // mid-selection. Leave selection mode here too, so bulk actions can't
+    // reach peers selected in a list that is no longer shown.
+    model.setMultiSelectionMode(false);
+  }
+  model.setCurrentTab(tabIndex);
+  if (tabIndex == PeerTabIndex.ab.index) {
+    gFFI.abModel.pullAb(force: null, quiet: false);
+  } else if (tabIndex == PeerTabIndex.group.index) {
+    gFFI.groupModel.pull(force: false);
+  }
+}
+
+/// The peer lists as Nimbus sidebar rows. Selecting a row switches the list
+/// shown by [PeerTabPage] and remembers the choice like the tab bar does.
+/// Dragging a row reorders the lists, as dragging a tab bar icon does.
+class PeerTabSidebar extends StatelessWidget {
+  const PeerTabSidebar({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: gFFI.peerTabModel,
+      child: Consumer<PeerTabModel>(
+        builder: (context, model, _) {
+          final selectable = !isOptionFixed(kOptionPeerTabIndex);
+          final tabs = model.visibleEnabledOrderedIndexs;
+          return Padding(
+            padding: const EdgeInsets.only(top: NimbusSpace.s4),
+            child: ReorderableListView(
+              shrinkWrap: true,
+              buildDefaultDragHandles: false,
+              physics: const NeverScrollableScrollPhysics(),
+              onReorder: model.reorder,
+              children: [
+                for (var i = 0; i < tabs.length; i++)
+                  ReorderableDragStartListener(
+                    key: ValueKey(tabs[i]),
+                    index: i,
+                    child: NimbusSidebarRow(
+                      icon: model.tabIcon(tabs[i]),
+                      label: model.tabTooltip(tabs[i]),
+                      selected: model.currentTab == tabs[i],
+                      onTap: selectable
+                          ? () async {
+                              _switchPeerTab(tabs[i]);
+                              await bind.setLocalFlutterOption(
+                                  k: kOptionPeerTabIndex,
+                                  v: tabs[i].toString());
+                            }
+                          : null,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
 
 class PeerTabPage extends StatefulWidget {
   const PeerTabPage({Key? key}) : super(key: key);
@@ -120,8 +190,9 @@ class _PeerTabPageState extends State<PeerTabPage>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                        child: visibleContextMenuListener(
-                            _createSwitchBar(context))),
+                        child: visibleContextMenuListener(isDesktop
+                            ? _createTabTitle(context)
+                            : _createSwitchBar(context))),
                     if (stateGlobal.isPortrait.isTrue)
                       ..._portraitRightActions(context)
                     else
@@ -132,6 +203,22 @@ class _PeerTabPageState extends State<PeerTabPage>
             ).paddingOnly(right: stateGlobal.isPortrait.isTrue ? 0 : 12)),
         _createPeersView(),
       ],
+    );
+  }
+
+  Widget _createTabTitle(BuildContext context) {
+    final model = Provider.of<PeerTabModel>(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        model.tabTooltip(model.currentTab),
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontSize: NimbusType.title3,
+          fontWeight: NimbusType.bold,
+          color: NimbusColors.textPrimary,
+        ),
+      ),
     );
   }
 

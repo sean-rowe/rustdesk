@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/desktop/widgets/menu_button.dart';
 
 // Examples can assume:
@@ -394,17 +395,16 @@ class PopupMenuItemState<T, W extends PopupMenuItem<T>> extends State<W> {
           focusNode: focusNode,
           onPressed: widget.enabled ? handleTap : null,
           style: ButtonStyle(
-            shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
+            shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+                borderRadius: NimbusRadii.all(NimbusRadii.xs))),
+            // Nimbus rows invert to the accent fill; the row is the only highlight.
             overlayColor: MaterialStateProperty.resolveWith((states) {
-              final color = theme.colorScheme.onSurface;
               if (states.contains(MaterialState.pressed)) {
-                return color.withOpacity(0.1);
+                return NimbusColors.accentStrong;
               }
-              if (states.contains(MaterialState.hovered)) {
-                return color.withOpacity(0.08);
-              }
-              if (states.contains(MaterialState.focused)) {
-                return color.withOpacity(0.1);
+              if (states.contains(MaterialState.hovered) ||
+                  states.contains(MaterialState.focused)) {
+                return NimbusColors.accentFill;
               }
               return Colors.transparent;
             }),
