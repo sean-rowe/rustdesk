@@ -83,11 +83,16 @@ fn make_tray() -> hbb_common::ResultType<()> {
     let header_separator = PredefinedMenuItem::separator();
     tray_menu
         .append_items(&[&id_i, &status_i, &header_separator, &open_i, &copy_id_i])
-        .ok();
+        .context("Failed to build the tray menu")?;
     let quit_separator = PredefinedMenuItem::separator();
     if let Some(quit_i) = &quit_i {
-        tray_menu.append_items(&[&quit_separator, quit_i]).ok();
+        tray_menu
+            .append_items(&[&quit_separator, quit_i])
+            .context("Failed to add Stop service to the tray menu")?;
     }
+    // On X11 the copied text lives only as long as this handle, so the tray
+    // keeps one for its whole life.
+    let mut clipboard: Option<arboard::Clipboard> = None;
     // The ID comes from the service over IPC, so re-read it off the event
     // loop; the header then follows a Change ID without a tray restart.
     let (id_sender, id_receiver) = std::sync::mpsc::channel::<String>();
@@ -213,7 +218,7 @@ fn make_tray() -> hbb_common::ResultType<()> {
 
         if let Ok(event) = menu_channel.try_recv() {
             if event.id == copy_id_i.id() {
-                copy_id_to_clipboard();
+                copy_id_to_clipboard(&mut clipboard, &shown_id);
             } else if let Some(quit_i) = &quit_i {
                 if event.id == quit_i.id() {
                     /* failed in windows, seems no permission to check system process
@@ -293,12 +298,26 @@ fn id_label(id: &str) -> String {
     format!("{}: {}", translate("ID".to_owned()), id)
 }
 
-/// Copies the current ID to the clipboard. The tray process keeps running,
-/// so on Linux it stays the owner of the copied text.
-fn copy_id_to_clipboard() {
-    let id = crate::ipc::get_id();
-    if let Err(err) = arboard::Clipboard::new().and_then(|mut board| board.set_text(id)) {
-        log::error!("Failed to copy the ID to the clipboard: {}", err);
+/// Copies the ID the header shows, which a worker keeps current, so the
+/// event loop never waits on IPC. Reuses the tray's clipboard handle.
+fn copy_id_to_clipboard(clipboard: &mut Option<arboard::Clipboard>, id: &str) {
+    if id.is_empty() {
+        log::error!("No ID to copy: the service has not reported one yet");
+        return;
+    }
+    if clipboard.is_none() {
+        match arboard::Clipboard::new() {
+            Ok(board) => *clipboard = Some(board),
+            Err(err) => {
+                log::error!("Failed to open the clipboard: {}", err);
+                return;
+            }
+        }
+    }
+    if let Some(board) = clipboard.as_mut() {
+        if let Err(err) = board.set_text(id.to_owned()) {
+            log::error!("Failed to copy the ID to the clipboard: {}", err);
+        }
     }
 }
 

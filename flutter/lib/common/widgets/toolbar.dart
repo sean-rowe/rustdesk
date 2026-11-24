@@ -683,9 +683,9 @@ List<TTextMenu> toolbarControls(BuildContext context, String id, FFI ffi) {
     v.add(TTextMenu(
         child: Obx(() => Text(translate(
             '${BlockInputState.find(id).value ? 'Unb' : 'B'}lock user input'))),
-        trailingIcon: BlockInputState.find(id).value
+        trailingIcon: Obx(() => BlockInputState.find(id).value
             ? const Icon(Icons.check, size: 16, color: NimbusColors.accent)
-            : null,
+            : const SizedBox.shrink()),
         onPressed: () {
           RxBool blockInput = BlockInputState.find(id);
           bind.sessionToggleOption(

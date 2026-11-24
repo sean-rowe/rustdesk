@@ -106,7 +106,8 @@ class TransferJobRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final done = job.state == JobState.done;
+    // Cancelled jobs also end as done, so success needs a clean error too.
+    final done = job.state == JobState.done && job.err != 'cancel';
     final showBar = job.type == JobType.transfer &&
         (done ||
             job.state == JobState.inProgress ||

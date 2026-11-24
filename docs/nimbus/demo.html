@@ -272,9 +272,13 @@ svg { display: block; }
 .peers { display: grid; grid-template-columns: repeat(auto-fill, minmax(216px, 1fr)); gap: 8px; padding-right: 12px; }
 .peers.list { grid-template-columns: 1fr; gap: 1px; }
 .peer {
-  display: flex; align-items: center; gap: 10px; padding: 10px 6px 10px 10px; text-align: left;
+  display: flex; align-items: center; gap: 4px; padding-right: 6px;
   border: 1px solid var(--nim-divider); border-radius: var(--r-lg); background: var(--nim-surface-raise);
   transition: background .15s var(--nim-ease);
+}
+.peer-main {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px 0 10px 10px;
+  border: 0; border-radius: var(--r-lg); background: none; color: inherit; text-align: left;
 }
 .peer:hover { background: rgba(255, 255, 255, .10); }
 .peer .art { width: 40px; height: 40px; flex: none; border-radius: var(--r-md); display: grid; place-items: center; color: #fff; box-shadow: var(--nim-shadow-icon); }
@@ -283,7 +287,8 @@ svg { display: block; }
 .peer .who b { font-size: 14.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .peer .who span { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--nim-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .peer .who small { font-size: 11.5px; color: var(--nim-text-tertiary); }
-.peers.list .peer { padding: 6px 6px 6px 8px; border-color: transparent; border-radius: var(--r-sm); background: transparent; }
+.peers.list .peer-main { padding: 6px 0 6px 8px; border-radius: var(--r-sm); }
+.peers.list .peer { border-color: transparent; border-radius: var(--r-sm); background: transparent; }
 .peers.list .peer:hover { background: var(--nim-hover-row); }
 .peers.list .art { width: 28px; height: 28px; border-radius: var(--r-sm); box-shadow: none; }
 .peers.list .art svg { width: 16px; height: 16px; }
@@ -1241,19 +1246,13 @@ button.tile:hover { background: rgba(255, 255, 255, .10); }
     }
     host.innerHTML = items.map(n => {
       const d = DEVICES[n];
-      return `<button class="peer" data-n="${n}" aria-label="${n}, ${d.id}, ${d.online ? 'online' : 'offline'}">
-        <span class="art" style="background:${grad(d.hue)}">${I[d.os]}</span>
-        <span class="who"><b>${n}</b><span><i class="status-dot ${d.online ? '' : 'off'}"></i>${d.id}</span>${current === 'group' && d.owner ? `<small>${d.owner === 'sean' ? 'Yours' : 'Shared by ' + d.owner}</small>` : ''}</span>
-        <span class="ibtn" data-menu="${n}" role="button" tabindex="0" aria-label="${n} options" aria-haspopup="menu">${I.more}</span></button>`;
+      return `<div class="peer" data-n="${n}">
+        <button class="peer-main" aria-label="Connect to ${n}, ${d.id}, ${d.online ? 'online' : 'offline'}"><span class="art" style="background:${grad(d.hue)}">${I[d.os]}</span>
+        <span class="who"><b>${n}</b><span><i class="status-dot ${d.online ? '' : 'off'}"></i>${d.id}</span>${current === 'group' && d.owner ? `<small>${d.owner === 'sean' ? 'Yours' : 'Shared by ' + d.owner}</small>` : ''}</span></button>
+        <button class="ibtn" data-menu="${n}" aria-label="${n} options" aria-haspopup="menu">${I.more}</button></div>`;
     }).join('');
-    $$('.peer', host).forEach(p => {
-      p.onclick = e => { if (!e.target.closest('[data-menu]')) connect(p.dataset.n); };
-    });
-    $$('[data-menu]', host).forEach(m => {
-      const open = e => { e.stopPropagation(); peerMenu(m, m.dataset.menu); };
-      m.addEventListener('click', open);
-      m.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); } });
-    });
+    $$('.peer', host).forEach(p => { $('.peer-main', p).onclick = () => connect(p.dataset.n); });
+    $$('[data-menu]', host).forEach(m => { m.onclick = () => peerMenu(m, m.dataset.menu); });
   }
   function peerMenu(anchor, n) {
     const fav = LISTS[1].items.includes(n);

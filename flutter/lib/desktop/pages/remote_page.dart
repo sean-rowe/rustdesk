@@ -1013,11 +1013,12 @@ class _RemotePageState extends State<RemotePage>
             QualityMonitor(_ffi.qualityMonitorModel), null, null),
       ),
     );
+    // Not wrapped in the raw input region: a click on Stop must not reach
+    // the remote device.
     paints.add(Positioned(
       top: 10,
       left: 10,
-      child: _buildRawTouchAndPointerRegion(
-          RecordingPill(model: _ffi.recordingModel), null, null),
+      child: RecordingPill(model: _ffi.recordingModel),
     ));
     paints.add(Positioned(
       left: 0,
