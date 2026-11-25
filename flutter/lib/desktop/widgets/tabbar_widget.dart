@@ -673,9 +673,9 @@ class _DesktopTabState extends State<DesktopTab>
                     ),
                     Offstage(
                       offstage: kUseCompatibleUiMode || isMacOS || !showTitle,
-                      child: Text(
-                        bind.mainGetAppNameSync(),
-                        style: const TextStyle(
+                      child: const Text(
+                        kAppDisplayName,
+                        style: TextStyle(
                             fontSize: NimbusType.footnote,
                             fontWeight: NimbusType.semibold,
                             color: NimbusColors.textSecondary),

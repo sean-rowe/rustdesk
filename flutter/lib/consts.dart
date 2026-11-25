@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 
 export 'common/widgets/keyboard_shortcuts/shortcut_constants.dart';
 
+const String kAppDisplayName = "Tether";
+
 const int kMaxVirtualDisplayCount = 4;
 const int kAllVirtualDisplay = -1;
 

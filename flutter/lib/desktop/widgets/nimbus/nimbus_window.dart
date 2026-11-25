@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/theme/nimbus.dart';
+import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
@@ -121,9 +122,9 @@ class NimbusWindowBrandTitle extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 9),
-            Text(
-              bind.mainGetAppNameSync(),
-              style: const TextStyle(
+            const Text(
+              kAppDisplayName,
+              style: TextStyle(
                 fontSize: NimbusType.callout,
                 fontWeight: NimbusType.semibold,
                 color: NimbusColors.textPrimary,
@@ -142,10 +143,10 @@ class NimbusWindowTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
+    return const IgnorePointer(
       child: Text(
-        bind.mainGetAppNameSync(),
-        style: const TextStyle(
+        kAppDisplayName,
+        style: TextStyle(
           fontSize: NimbusType.callout,
           fontWeight: NimbusType.semibold,
           color: NimbusColors.textPrimary,
