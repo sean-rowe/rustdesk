@@ -91,16 +91,24 @@ static void side_buttons_init_for_window(GtkWindow* window, FlMethodChannel* cha
 // them. This is KDE's blur hint, which KWin and picom (blur-background) honor.
 // The region is one rectangle larger than any screen, so it covers the window
 // at every size: KWin clips it to the window, and picom treats an empty region
-// as no hint at all. X11 only, a no-op elsewhere.
+// as no hint at all. Also publish _GTK_FRAME_EXTENTS so pine-wm treats the
+// window as client-side decorated and does not add a server-side title bar.
+// X11 only, a no-op elsewhere.
 static void set_blur_behind(GtkWidget* widget, gpointer user_data) {
 #ifdef GDK_WINDOWING_X11
   GdkWindow* gdk_window = gtk_widget_get_window(widget);
   if (gdk_window == NULL || !GDK_IS_X11_WINDOW(gdk_window)) return;
+  const GdkAtom cardinal = gdk_atom_intern_static_string("CARDINAL");
+  const long extents[4] = {0, 0, 0, 0};
+  gdk_property_change(gdk_window,
+                      gdk_atom_intern_static_string("_GTK_FRAME_EXTENTS"),
+                      cardinal, 32,
+                      GDK_PROP_MODE_REPLACE, (const guchar*)extents, 4);
   // x, y, width, height. Format-32 data is passed as longs.
   const long region[4] = {0, 0, 16384, 16384};
   gdk_property_change(gdk_window,
                       gdk_atom_intern_static_string("_KDE_NET_WM_BLUR_BEHIND_REGION"),
-                      gdk_atom_intern_static_string("CARDINAL"), 32,
+                      cardinal, 32,
                       GDK_PROP_MODE_REPLACE, (const guchar*)region, 4);
 #endif
 }

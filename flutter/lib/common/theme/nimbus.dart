@@ -59,6 +59,9 @@ abstract final class NimbusColors {
   static const Color trafficClose = Color(0xFFEC6A8C);
   static const Color trafficMinimize = Color(0xFFE0A23A);
   static const Color trafficMaximize = Color(0xFF5EC98A);
+  static const Color trafficUnfocused = Color(0xFF5C5A66);
+  static const Color trafficGlyph = Color(0xFF330D00);
+  static const double trafficUnfocusedOpacity = 0.55;
 
   // Semantic
   static const Color success = Color(0xFF5EC98A);

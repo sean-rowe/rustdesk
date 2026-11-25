@@ -144,13 +144,14 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
         invisibleTabKeys: RxList.empty(),
         showExtras: false,
       ),
+      leading: const NimbusWindowBrandTitle(),
       // Incoming-only mode has no Settings entry here, but Settings can still
       // be opened from the ID board, so the switch appears while it is open
       // to give a way back to Home.
       center: Obx(() {
         final selected = _selectedTabKey();
         if (!canOpenSettings && selected != kTabLabelSettingPage) {
-          return const NimbusWindowTitle();
+          return const SizedBox.shrink();
         }
         return NimbusSegmentedControl<String>(
           segments: [

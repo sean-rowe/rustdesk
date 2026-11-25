@@ -822,6 +822,7 @@ class WindowActionPanelState extends State<WindowActionPanel> {
                 showMinimize: widget.showMinimize,
                 showMaximize: widget.showMaximize,
                 isMaximized: stateGlobal.isMaximized.isTrue,
+                isFocused: stateGlobal.isFocused.isTrue,
               )),
       ],
     );

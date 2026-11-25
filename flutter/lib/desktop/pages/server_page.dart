@@ -8,8 +8,10 @@ import 'package:flutter_hbb/common/theme/nimbus.dart';
 import 'package:flutter_hbb/common/widgets/audio_input.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
+import 'package:flutter_hbb/desktop/widgets/traffic_lights.dart';
 import 'package:flutter_hbb/models/chat_model.dart';
 import 'package:flutter_hbb/models/cm_file_model.dart';
+import 'package:flutter_hbb/models/state_model.dart';
 import 'package:flutter_hbb/utils/platform_channel.dart';
 import 'package:get/get.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
@@ -60,6 +62,16 @@ class _DesktopServerPageState extends State<DesktopServerPage>
   void dispose() {
     windowManager.removeListener(this);
     super.dispose();
+  }
+
+  @override
+  void onWindowFocus() {
+    stateGlobal.isFocused.value = true;
+  }
+
+  @override
+  void onWindowBlur() {
+    stateGlobal.isFocused.value = false;
   }
 
   @override
@@ -295,26 +307,38 @@ class ConnectionManagerState extends State<ConnectionManager>
   }
 
   Widget buildTitleBar() {
-    return SizedBox(
+    return Container(
       height: kDesktopRemoteTabBarHeight,
+      color: const Color(0x0AFFFFFF),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          if (isMacOS)
+            const SizedBox(width: 78)
+          else if (!kUseCompatibleUiMode)
+            Obx(() => TrafficLights(
+                  onClose: () => windowManager.close(),
+                  onMinimize: () => windowManager.minimize(),
+                  onMaximize: null,
+                  showMaximize: false,
+                  isFocused: stateGlobal.isFocused.isTrue,
+                )),
           const _AppIcon(),
           Expanded(
             child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
               onPanStart: (d) {
                 windowManager.startDragging();
               },
-              child: Container(
-                color: Theme.of(context).colorScheme.background,
-              ),
+              child: const SizedBox.expand(),
             ),
           ),
-          const SizedBox(
-            width: 4.0,
-          ),
-          const _CloseButton()
+          if (kUseCompatibleUiMode) ...[
+            const SizedBox(
+              width: 4.0,
+            ),
+            const _CloseButton(),
+          ],
         ],
       ),
     );

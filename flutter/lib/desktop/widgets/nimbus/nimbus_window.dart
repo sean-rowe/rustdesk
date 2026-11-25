@@ -25,15 +25,17 @@ class NimbusWindowFrame extends StatelessWidget {
   }
 }
 
-/// A Nimbus title bar: window controls on the left, a centered title or
-/// control, and an optional trailing slot. Dragging moves the window and a
-/// double click toggles maximize.
+/// A Nimbus title bar: window controls on the left, an optional leading slot
+/// just right of the controls, a centered title or control, and an optional
+/// trailing slot. Dragging moves the window and a double click toggles
+/// maximize.
 class NimbusTitleBar extends StatelessWidget {
   static const double height = 46;
   static const double _macOSControlsWidth = 78;
 
   final bool isMainWindow;
   final Widget controls;
+  final Widget? leading;
   final Widget center;
   final Widget? trailing;
   final bool canMaximize;
@@ -42,6 +44,7 @@ class NimbusTitleBar extends StatelessWidget {
     Key? key,
     required this.isMainWindow,
     required this.controls,
+    this.leading,
     required this.center,
     this.trailing,
     this.canMaximize = true,
@@ -71,6 +74,7 @@ class NimbusTitleBar extends StatelessWidget {
             const SizedBox(width: _macOSControlsWidth)
           else
             controls,
+          if (leading != null) leading!,
           const Spacer(),
           if (trailing != null)
             Padding(
@@ -80,6 +84,54 @@ class NimbusTitleBar extends StatelessWidget {
         ]),
         Center(child: center),
       ]),
+    );
+  }
+}
+
+/// The app icon tile and window title shown beside the traffic lights.
+class NimbusWindowBrandTitle extends StatelessWidget {
+  const NimbusWindowBrandTitle({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Padding(
+        padding: const EdgeInsets.only(left: 3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                borderRadius: NimbusRadii.all(NimbusRadii.xs),
+                gradient: const LinearGradient(
+                  begin: Alignment(-0.42, -1),
+                  end: Alignment(0.42, 1),
+                  colors: [
+                    NimbusColors.brandIndigo,
+                    NimbusColors.brandMagenta,
+                  ],
+                ),
+              ),
+              child: const Icon(
+                Icons.desktop_windows_outlined,
+                size: 12,
+                color: NimbusColors.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 9),
+            Text(
+              bind.mainGetAppNameSync(),
+              style: const TextStyle(
+                fontSize: NimbusType.callout,
+                fontWeight: NimbusType.semibold,
+                color: NimbusColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
